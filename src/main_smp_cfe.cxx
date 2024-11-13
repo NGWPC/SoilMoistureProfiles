@@ -17,6 +17,7 @@
 #include "../bmi/bmi.hxx"
 #include "bmi_soil_moisture_profile.hxx"
 #include "soil_moisture_profile.hxx"
+#include "Logger.hpp"
 
 #define SUCCESS 0
 
@@ -113,7 +114,9 @@ int main(int argc, char *argv[])
 
       //for (int k = 0; k < 20; k++)
       //    std::cout <<"soil_moisture ("<< k << ") = "<< smc[k] <<"\n";
-      std::cout<<"water table depth [m] = "<<water_table<<"\n";
+      std::stringstream ss("");
+      ss <<"water table depth [m] = "<<water_table<<"\n";
+      LOG(ss.str(), LogLevel::INFO);  
   }
 
   smp_bmi.Finalize();

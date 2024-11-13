@@ -11,11 +11,17 @@
 #include "../bmi/bmi.hxx"
 #include "../include/bmi_soil_moisture_profile.hxx"
 #include "../include/soil_moisture_profile.hxx"
+#include "../include/Logger.hpp"
 
+std::stringstream bmi_smp_ss("");
+std::stringstream not_implemented("Not Implemented Function in SoilMoistureProfile");
 
 void BmiSoilMoistureProfile::
 Initialize (std::string config_file)
 {
+  Logger::setup_logger(); 
+  LOG("miSoilMoistureProfile::Initialize Setting up the Logger", LogLevel::INFO);
+
   if (config_file.compare("") != 0 ) {
     this->state = new soil_moisture_profile::soil_profile_parameters;
     soil_moisture_profile::SoilMoistureProfile(config_file, state);
@@ -219,6 +225,7 @@ GetGridType(const int grid)
 void BmiSoilMoistureProfile::
 GetGridX(const int grid, double *x)
 {
+  LOG(not_implemented.str(), LogLevel::ERROR);  
   throw coupler::NotImplemented();
 }
 
@@ -226,6 +233,7 @@ GetGridX(const int grid, double *x)
 void BmiSoilMoistureProfile::
 GetGridY(const int grid, double *y)
 {
+  LOG(not_implemented.str(), LogLevel::ERROR);  
   throw coupler::NotImplemented();
 }
 
@@ -233,6 +241,7 @@ GetGridY(const int grid, double *y)
 void BmiSoilMoistureProfile::
 GetGridZ(const int grid, double *z)
 {
+  LOG(not_implemented.str(), LogLevel::ERROR);  
   throw coupler::NotImplemented();
 }
 
@@ -240,6 +249,7 @@ GetGridZ(const int grid, double *z)
 int BmiSoilMoistureProfile::
 GetGridNodeCount(const int grid)
 {
+  LOG(not_implemented.str(), LogLevel::ERROR);  
   throw coupler::NotImplemented();
   /*
   if (grid == 0)
@@ -253,6 +263,7 @@ GetGridNodeCount(const int grid)
 int BmiSoilMoistureProfile::
 GetGridEdgeCount(const int grid)
 {
+  LOG(not_implemented.str(), LogLevel::ERROR);  
   throw coupler::NotImplemented();
 }
 
@@ -260,6 +271,7 @@ GetGridEdgeCount(const int grid)
 int BmiSoilMoistureProfile::
 GetGridFaceCount(const int grid)
 {
+  LOG(not_implemented.str(), LogLevel::ERROR);  
   throw coupler::NotImplemented();
 }
 
@@ -267,6 +279,7 @@ GetGridFaceCount(const int grid)
 void BmiSoilMoistureProfile::
 GetGridEdgeNodes(const int grid, int *edge_nodes)
 {
+  LOG(not_implemented.str(), LogLevel::ERROR);  
   throw coupler::NotImplemented();
 }
 
@@ -274,6 +287,7 @@ GetGridEdgeNodes(const int grid, int *edge_nodes)
 void BmiSoilMoistureProfile::
 GetGridFaceEdges(const int grid, int *face_edges)
 {
+  LOG(not_implemented.str(), LogLevel::ERROR);  
   throw coupler::NotImplemented();
 }
 
@@ -281,6 +295,7 @@ GetGridFaceEdges(const int grid, int *face_edges)
 void BmiSoilMoistureProfile::
 GetGridFaceNodes(const int grid, int *face_nodes)
 {
+  LOG(not_implemented.str(), LogLevel::ERROR);  
   throw coupler::NotImplemented();
 }
 
@@ -288,6 +303,7 @@ GetGridFaceNodes(const int grid, int *face_nodes)
 void BmiSoilMoistureProfile::
 GetGridNodesPerFace(const int grid, int *nodes_per_face)
 {
+  LOG(not_implemented.str(), LogLevel::ERROR);  
   throw coupler::NotImplemented();
 }
 
@@ -340,6 +356,7 @@ GetValuePtr (std::string name)
   else {
     std::stringstream errMsg;
     errMsg << "variable "<< name << " does not exist";
+    LOG(errMsg.str(), LogLevel::ERROR);  
     throw std::runtime_error(errMsg.str());
     return NULL;
   }

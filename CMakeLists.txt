@@ -45,14 +45,14 @@ if(CFE)
                              ./extern/cfe/src/giuh.c ./extern/cfe/src/conceptual_reservoir.c ./extern/cfe/src/nash_cascade.c)
  target_include_directories(${exe_name} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/extern/cfe/include)
 elseif(TOPMODEL)
-  add_executable(${exe_name} ./src/main_smp_topmodel.cxx ./extern/topmodel/src/topmodel.c ./extern/topmodel/src/bmi_topmodel.c)
+  add_executable(${exe_name} ./src/main_smp_topmodel.cxx ./src/Logger.cpp ./extern/topmodel/src/topmodel.c ./extern/topmodel/src/bmi_topmodel.c)
   target_include_directories(${exe_name} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/extern/topmodel/include)
 endif()
 
 
 if(TOPMODEL OR CFE)
-  add_library(smplib ./src/bmi_soil_moisture_profile.cxx ./src/soil_moisture_profile.cxx ./include/bmi_soil_moisture_profile.hxx
-                     ./include/soil_moisture_profile.hxx)
+  add_library(smplib ./src/bmi_soil_moisture_profile.cxx ./src/soil_moisture_profile.cxx ./src/Logger.cpp ./include/bmi_soil_moisture_profile.hxx
+                     ./include/soil_moisture_profile.hxx ./include/Logger.hpp)
   target_link_libraries(${exe_name} LINK_PUBLIC smplib)
   target_include_directories(${exe_name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
   target_link_libraries(${exe_name} PRIVATE m)
@@ -61,9 +61,9 @@ endif()
 
 ## for NGEN BUILD
 if(WIN32)
-    add_library(smpbmi src/bmi_soil_moisture_profile.cxx src/soil_moisture_profile.cxx)
+    add_library(smpbmi src/bmi_soil_moisture_profile.cxx src/soil_moisture_profile.cxx ./src/Logger.cpp)
 else()
-    add_library(smpbmi SHARED src/bmi_soil_moisture_profile.cxx src/soil_moisture_profile.cxx)
+    add_library(smpbmi SHARED src/bmi_soil_moisture_profile.cxx src/soil_moisture_profile.cxx ./src/Logger.cpp)
 endif()
 
 target_include_directories(smpbmi PRIVATE include)

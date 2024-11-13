@@ -8,6 +8,9 @@
 //#include <algorithm>  // for std::min and std::max (C++)
 
 #include "../include/soil_moisture_profile.hxx"
+#include "../include/Logger.hpp"
+
+std::stringstream smp_ss("");
 
 enum {Conceptual=1, Layered=2, Topmodel=3};
 enum {Constant=1, Linear=2};
@@ -242,6 +245,7 @@ InitFromConfigFile(string config_file, struct soil_profile_parameters* parameter
   if (!is_soil_z_set) {
     stringstream errMsg;
     errMsg << "soil_z not set in the config file "<< config_file << "\n";
+    LOG(errMsg.str(), LogLevel::ERROR);  
     throw runtime_error(errMsg.str());
   }
 
@@ -250,6 +254,7 @@ InitFromConfigFile(string config_file, struct soil_profile_parameters* parameter
     if (parameters->soil_storage_model == Layered) {
       stringstream errMsg;
       errMsg << "soil_depth_layers not set in the config file "<< config_file << "\n";
+      LOG(errMsg.str(), LogLevel::ERROR);  
       throw runtime_error(errMsg.str());
     }
   }
@@ -257,18 +262,21 @@ InitFromConfigFile(string config_file, struct soil_profile_parameters* parameter
   if (!is_smcmax_set) {
     stringstream errMsg;
     errMsg << "smcmax not set in the config file "<< config_file << "\n";
+    LOG(errMsg.str(), LogLevel::ERROR);  
     throw runtime_error(errMsg.str());
   }
 
   if (!is_b_set) {
     stringstream errMsg;
     errMsg << "b (Clapp-Hornberger's parameter) not set in the config file "<< config_file << "\n";
+    LOG(errMsg.str(), LogLevel::ERROR);  
     throw runtime_error(errMsg.str());
   }
 
   if (!is_satpsi_set) {
     stringstream errMsg;
     errMsg << "satpsi not set in the config file "<< config_file << "\n";
+    LOG(errMsg.str(), LogLevel::ERROR);  
     throw runtime_error(errMsg.str());
   }
 
@@ -279,12 +287,14 @@ InitFromConfigFile(string config_file, struct soil_profile_parameters* parameter
   if (!is_soil_storage_model_depth_set && parameters->soil_storage_model == Conceptual) {
     stringstream errMsg;
     errMsg << "soil_storage_model_depth not set in the config file "<< config_file << "\n";
+    LOG(errMsg.str(), LogLevel::ERROR);  
     throw runtime_error(errMsg.str());
   }
 
   if (!is_soil_storage_model_set) {
     stringstream errMsg;
     errMsg << "soil_storage_model not set in the config file "<< config_file << ". Options 'conceptual or layered' \n";
+    LOG(errMsg.str(), LogLevel::ERROR);  
     throw runtime_error(errMsg.str());
   }
 
@@ -293,6 +303,7 @@ InitFromConfigFile(string config_file, struct soil_profile_parameters* parameter
     if (!is_soil_moisture_profile_option_set) {
       stringstream errMsg;
       errMsg << "soil_moisture_profile_option_set key is not set in the config file "<< config_file << ", options = constant or linear \n";
+      LOG(errMsg.str(), LogLevel::ERROR);  
       throw runtime_error(errMsg.str());
     }
 
@@ -309,14 +320,16 @@ InitFromConfigFile(string config_file, struct soil_profile_parameters* parameter
 
     if (is_water_table_based_method_set) {
       if (parameters->water_table_based_method != Flux_based && parameters->water_table_based_method != Deficit_based) {
-	stringstream errMsg;
-	errMsg << "water_table_based_method key is set in the config file "<< config_file << " with wrong options. Options = flux_based or deficit_based \n";
-	throw runtime_error(errMsg.str());
+	      stringstream errMsg;
+	      errMsg << "water_table_based_method key is set in the config file "<< config_file << " with wrong options. Options = flux_based or deficit_based \n";
+        LOG(errMsg.str(), LogLevel::ERROR);  
+	      throw runtime_error(errMsg.str());
       }
     }
     else {
       stringstream errMsg;
       errMsg << "soil_storage_model is set to Topmodel in the config file "<< config_file << ", but water_table_based_method is not set. Options = iterative or deficit \n";
+      LOG(errMsg.str(), LogLevel::ERROR);  
       throw runtime_error(errMsg.str());
     }
   }
@@ -348,6 +361,7 @@ SoilMoistureProfileUpdate(struct soil_profile_parameters* parameters)
     stringstream errMsg;
     errMsg << "Soil moisture profile OPTION provided in the config file is " << parameters->soil_storage_model
 	   << ", valid options are concepttual, layered, and topmodel " <<"\n";
+    LOG(errMsg.str(), LogLevel::ERROR);  
     throw runtime_error(errMsg.str());
   }
 
@@ -539,7 +553,8 @@ SoilMoistureProfileFromConceptualReservoir(struct soil_profile_parameters* param
   }
 
   if (verbosity.compare("high") == 0) {
-    std::cout<<"Number of iterations  = "<< count <<"\nWater table depth (m) = "<< parameters->water_table_depth <<"\n";
+    smp_ss <<"Number of iterations  = "<< count <<"\nWater table depth (m) = "<< parameters->water_table_depth <<"\n";
+    LOG(smp_ss.str(), LogLevel::INFO); smp_ss.str(""); 
     PrintSoilMoistureProfile(parameters);
 
     // check compute water in the model domaian
@@ -548,7 +563,8 @@ SoilMoistureProfileFromConceptualReservoir(struct soil_profile_parameters* param
     for (int i=1; i<parameters->ncells; i++) {
       total_water += parameters->soil_moisture_profile[i] * (parameters->soil_z[i] - parameters->soil_z[i-1]);
     }
-    std::cout<<"Given soil water = "<<parameters->soil_storage<<", Computed soil water = "<<total_water<<"\n";
+    smp_ss <<"Given soil water = "<<parameters->soil_storage<<", Computed soil water = "<<total_water<<"\n";
+    LOG(smp_ss.str(), LogLevel::INFO); smp_ss.str("");
   }
 
   for (int i=1; i<parameters->ncells; i++) {
@@ -585,10 +601,12 @@ SoilMoistureProfileFromLayeredReservoir(struct soil_profile_parameters* paramete
   int num_layers        = parameters->num_layers;
 
   if (verbosity.compare("high") == 0) {
-    std::cerr<<"SoilMoistureProfile: number of wetting fronts = "<<num_wf<<"\n";
+    smp_ss <<"SoilMoistureProfile: number of wetting fronts = "<<num_wf<<"\n";
+    LOG(smp_ss.str(), LogLevel::ERROR); smp_ss.str("");
     for (int i =0; i <num_wf; i++)
-      std::cerr<<"SoilMoistureProfile (input): (depth, water_content) = "<<parameters->soil_depth_wetting_fronts[i]
+      smp_ss <<"SoilMoistureProfile (input): (depth, water_content) = "<<parameters->soil_depth_wetting_fronts[i]
 	       <<", "<<parameters->soil_moisture_wetting_fronts[i]<<"\n";
+      LOG(smp_ss.str(), LogLevel::ERROR); smp_ss.str("");
   }
 
   parameters->last_layer_depth = parameters->soil_depth_wetting_fronts[num_wf-1];
@@ -701,7 +719,8 @@ SoilMoistureProfileFromLayeredReservoir(struct soil_profile_parameters* paramete
   }
 
   if (verbosity.compare("high") == 0) {
-    std::cout<<"Water table depth (m) = "<< parameters->water_table_depth <<"\n";
+    smp_ss <<"Water table depth (m) = "<< parameters->water_table_depth <<"\n";
+    LOG(smp_ss.str(), LogLevel::INFO); smp_ss.str("");  
     PrintSoilMoistureProfile(parameters);
   }
 
@@ -893,7 +912,8 @@ SoilMoistureProfileFromWaterTableDepth(struct soil_profile_parameters* parameter
 
 
   if (verbosity.compare("high") == 0) {
-    std::cout<<"Water table depth (m) = "<< parameters->water_table_depth <<"\n";
+    smp_ss <<"Water table depth (m) = "<< parameters->water_table_depth <<"\n";
+    LOG(smp_ss.str(), LogLevel::INFO); smp_ss.str("");  
     PrintSoilMoistureProfile(parameters);
   }
 
@@ -927,6 +947,7 @@ ReadVectorData(string param_name, string param_value)
     if (v <= 0.0) {
       stringstream errMsg;
       errMsg << "Input provided in the config file for parameter "<< param_name << " is " << v << ". It should be positive."<< "\n";
+      LOG(errMsg.str(), LogLevel::ERROR);  
       throw runtime_error(errMsg.str());
     }
 
@@ -953,7 +974,8 @@ void soil_moisture_profile::
 PrintSoilMoistureProfile(struct soil_profile_parameters* parameters)
 {
   for (int i=0; i<parameters->ncells; i++)
-    std::cout<<"soil_moisture (z, value) = "<< parameters->soil_z[i]<<", "<<parameters->soil_moisture_profile[i]<<"\n";
+    smp_ss <<"soil_moisture (z, value) = "<< parameters->soil_z[i]<<", "<<parameters->soil_moisture_profile[i]<<"\n";
+    LOG(smp_ss.str(), LogLevel::INFO); smp_ss.str("");  
 }
 
 
