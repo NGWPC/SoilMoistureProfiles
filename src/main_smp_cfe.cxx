@@ -17,6 +17,7 @@
 #include "../bmi/bmi.hxx"
 #include "bmi_soil_moisture_profile.hxx"
 #include "soil_moisture_profile.hxx"
+#include "Logger.hxx"
 
 #define SUCCESS 0
 
@@ -57,31 +58,31 @@ int main(int argc, char *argv[])
   /************************************************************************
    * Allocating memory to store the entire CFE BMI structure
   ************************************************************************/
-  printf("\n Allocating memory to CFE BMI model structure ... \n");
+  LOG(LogLevel::INFO, "Allocating memory to CFE BMI model structure ...");
   Bmi *cfe_bmi_model = (Bmi *) malloc(sizeof(Bmi));
 
 
   /************************************************************************
    * Registering the BMI model for CFE
   ************************************************************************/
-  printf("Registering BMI CFE model\n");
+  LOG(LogLevel::INFO, "Registering BMI CFE model");
   register_bmi_cfe(cfe_bmi_model);
 
   /************************************************************************
    * Initializing the BMI model for CFE and AORC and Freeze-thaw model
   ************************************************************************/
-  printf("Initializeing BMI CFE %s \n", argv[1]);
+  LOG(LogLevel::INFO, "Initializeing BMI CFE %s", argv[1]);
   const char *cfg_file_cfe = argv[1];
   cfe_bmi_model->initialize(cfe_bmi_model, cfg_file_cfe);
 
-  printf("Initializeing BMI SMP model %s \n", argv[2]);
+  LOG(LogLevel::INFO, "Initializeing BMI SMP model %s", argv[2]);
   smp_bmi.Initialize(argv[2]);
 
 
   /************************************************************************
    * Get the information from the configuration here in Main
   ************************************************************************/
-  printf("Get the information from the configuration here in Main\n");
+  LOG(LogLevel::INFO, "Get the information from the configuration here in Main");
   cfe_state_struct *cfe;
   cfe = (cfe_state_struct *) cfe_bmi_model->data;
 
@@ -113,7 +114,7 @@ int main(int argc, char *argv[])
 
       //for (int k = 0; k < 20; k++)
       //    std::cout <<"soil_moisture ("<< k << ") = "<< smc[k] <<"\n";
-      std::cout<<"water table depth [m] = "<<water_table<<"\n";
+      LOG(LogLevel::INFO, "Water table depth (m) = %f", water_table);
   }
 
   smp_bmi.Finalize();

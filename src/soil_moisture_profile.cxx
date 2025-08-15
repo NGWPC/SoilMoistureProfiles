@@ -8,6 +8,7 @@
 //#include <algorithm>  // for std::min and std::max (C++)
 
 #include "../include/soil_moisture_profile.hxx"
+#include "Logger.hxx"
 
 enum {Conceptual=1, Layered=2, Topmodel=3};
 enum {Constant=1, Linear=2};
@@ -539,7 +540,8 @@ SoilMoistureProfileFromConceptualReservoir(struct soil_profile_parameters* param
   }
 
   if (verbosity.compare("high") == 0) {
-    std::cout<<"Number of iterations  = "<< count <<"\nWater table depth (m) = "<< parameters->water_table_depth <<"\n";
+    LOG(LogLevel::DEBUG, "Number of iterations  = %d ", count);
+    LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
     PrintSoilMoistureProfile(parameters);
 
     // check compute water in the model domaian
@@ -548,7 +550,7 @@ SoilMoistureProfileFromConceptualReservoir(struct soil_profile_parameters* param
     for (int i=1; i<parameters->ncells; i++) {
       total_water += parameters->soil_moisture_profile[i] * (parameters->soil_z[i] - parameters->soil_z[i-1]);
     }
-    std::cout<<"Given soil water = "<<parameters->soil_storage<<", Computed soil water = "<<total_water<<"\n";
+    LOG(LogLevel::DEBUG, "Given soil water =  %f, Given soil water =  %f ", parameters->soil_storage, total_water);
   }
 
   for (int i=1; i<parameters->ncells; i++) {
@@ -701,7 +703,7 @@ SoilMoistureProfileFromLayeredReservoir(struct soil_profile_parameters* paramete
   }
 
   if (verbosity.compare("high") == 0) {
-    std::cout<<"Water table depth (m) = "<< parameters->water_table_depth <<"\n";
+    LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
     PrintSoilMoistureProfile(parameters);
   }
 
@@ -893,7 +895,7 @@ SoilMoistureProfileFromWaterTableDepth(struct soil_profile_parameters* parameter
 
 
   if (verbosity.compare("high") == 0) {
-    std::cout<<"Water table depth (m) = "<< parameters->water_table_depth <<"\n";
+    LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
     PrintSoilMoistureProfile(parameters);
   }
 
@@ -953,7 +955,7 @@ void soil_moisture_profile::
 PrintSoilMoistureProfile(struct soil_profile_parameters* parameters)
 {
   for (int i=0; i<parameters->ncells; i++)
-    std::cout<<"soil_moisture (z, value) = "<< parameters->soil_z[i]<<", "<<parameters->soil_moisture_profile[i]<<"\n";
+    LOG(LogLevel::DEBUG, "soil_moisture (z, value) = %f, %f ", parameters->soil_z[i], parameters->soil_moisture_profile[i]);
 }
 
 
