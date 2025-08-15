@@ -11,6 +11,7 @@
 #include "../bmi/bmi.hxx"
 #include "../include/bmi_soil_moisture_profile.hxx"
 #include "../include/soil_moisture_profile.hxx"
+#include "Logger.hxx"
 
 #include <boost/serialization/serialization.hpp>
 #include <boost/archive/binary_oarchive.hpp>
@@ -266,6 +267,7 @@ GetGridX(const int grid, double *x)
 void BmiSoilMoistureProfile::
 GetGridY(const int grid, double *y)
 {
+  LOG(LogLevel::SEVERE, "GetGridY Not Implemented");
   throw coupler::NotImplemented();
 }
 
