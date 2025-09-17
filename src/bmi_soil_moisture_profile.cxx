@@ -148,7 +148,7 @@ GetVarUnits(std::string name)
     return "m";
   else if (name.compare("soil_moisture_profile") == 0 || name.compare("soil_moisture_wetting_fronts") == 0 ||
 	   name.compare("soil_moisture_fraction") == 0)
-    return "none";
+    return "1";  // dimensionless (UDUNITS)
   else if (name.compare("Qb_topmodel") == 0 || name.compare("Qv_topmodel") == 0)
     return "m h^-1";
   else if (name.compare("global_deficit") == 0)
