@@ -97,6 +97,7 @@ GetVarGrid(std::string name)
     return 5;
   else if (
     name.compare("serialization_create") == 0
+    || name.compare("serialization_size") == 0
   ) // uint64_t
     return 6;
   else
@@ -378,8 +379,7 @@ GetValuePtr (std::string name)
     return (void*)(&this->state->satpsi);
   else if (name.compare("serialization_state") == 0)
     return (void*)(this->m_serialized.data());
-  else if (name.compare("serialization_create") == 0) {
-    this->new_serialized();
+  else if (name.compare("serialization_size") == 0) {
     return (void*)(&this->m_serialized_length);
   } else {
     std::stringstream errMsg;
@@ -431,6 +431,9 @@ SetValue (std::string name, void *src)
   // special cases for state serialization
   if (name.compare("serialization_state") == 0) {
     this->load_serialized((char*)src);
+    return;
+  } else if (name.compare("serialization_create") == 0) {
+    this->new_serialized();
     return;
   } else if (name.compare("serialization_free") == 0) {
     this->free_serialized();
