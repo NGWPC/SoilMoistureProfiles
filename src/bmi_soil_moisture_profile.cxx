@@ -27,6 +27,7 @@ Initialize (std::string config_file)
   }
   else {
     LOG(LogLevel::FATAL, "SMP %s config file not provided", config_file.c_str());
+    throw std::runtime_error("Missing SMP Config file");
   }
 
   this->verbosity = this->state->verbosity;
