@@ -20,7 +20,7 @@ enum {Flux_based=1, Deficit_based=2};
 void soil_moisture_profile::
 SoilMoistureProfile(string config_file, struct soil_profile_parameters* parameters)
 {
-
+  
   InitFromConfigFile(config_file, parameters);
 
   parameters->shape[0] = parameters->ncells; // this is used for the size of soil_moisture_profile (bmi output)
@@ -81,6 +81,11 @@ InitFromConfigFile(string config_file, struct soil_profile_parameters* parameter
 {
   ifstream fp;
   fp.open(config_file);
+  if (!fp.is_open()) {
+    LOG(LogLevel::FATAL, "Unable to open %s", config_file.c_str());
+    throw std::runtime_error("Failure opening SMP config_file");
+  }
+  LOG(LogLevel::INFO, "Using SMP config file %s", config_file.c_str());
 
   bool is_soil_z_set                    = false;
   bool is_soil_depth_layers_set         = false;
@@ -539,9 +544,9 @@ SoilMoistureProfileFromConceptualReservoir(struct soil_profile_parameters* param
 
   }
 
+  LOG(LogLevel::DEBUG, "Number of iterations  = %d ", count);
+  LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
   if (verbosity.compare("high") == 0) {
-    LOG(LogLevel::DEBUG, "Number of iterations  = %d ", count);
-    LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
     PrintSoilMoistureProfile(parameters);
 
     // check compute water in the model domaian
@@ -702,8 +707,8 @@ SoilMoistureProfileFromLayeredReservoir(struct soil_profile_parameters* paramete
 
   }
 
+  LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
   if (verbosity.compare("high") == 0) {
-    LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
     PrintSoilMoistureProfile(parameters);
   }
 
@@ -894,8 +899,8 @@ SoilMoistureProfileFromWaterTableDepth(struct soil_profile_parameters* parameter
   }
 
 
+  LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
   if (verbosity.compare("high") == 0) {
-    LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
     PrintSoilMoistureProfile(parameters);
   }
 

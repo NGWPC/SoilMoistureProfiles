@@ -52,6 +52,9 @@ int main(int argc, char *argv[])
     printf("Usage: ./run_smp.sh CFE \n\n");
     printf("Run soil moisture profile model through its BMI with a configuration file.\n");
     //printf("Output is written to the file `bmi_file.out`.\n");
+    LOG(LogLevel::FATAL, "Expected number of arguments, 3, not received");
+    LOG(LogLevel::FATAL, "Usage: ./run_smp.sh CFE ...");
+    LOG(LogLevel::FATAL, "Run soil moisture profile model through its BMI with a configuration file");
     return SUCCESS;
   }
 
@@ -71,11 +74,11 @@ int main(int argc, char *argv[])
   /************************************************************************
    * Initializing the BMI model for CFE and AORC and Freeze-thaw model
   ************************************************************************/
-  LOG(LogLevel::INFO, "Initializeing BMI CFE %s", argv[1]);
+  LOG(LogLevel::INFO, "Initializing BMI CFE %s", argv[1]);
   const char *cfg_file_cfe = argv[1];
   cfe_bmi_model->initialize(cfe_bmi_model, cfg_file_cfe);
 
-  LOG(LogLevel::INFO, "Initializeing BMI SMP model %s", argv[2]);
+  LOG(LogLevel::INFO, "Initializing BMI SMP model %s", argv[2]);
   smp_bmi.Initialize(argv[2]);
 
 
