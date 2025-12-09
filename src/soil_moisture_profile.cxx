@@ -152,38 +152,58 @@ InitFromConfigFile(string config_file, struct soil_profile_parameters* parameter
       continue;
     }
 	// NOTE: `soil_params.smcmax` may be deprecated in the future in favor of `smcmax`
+	// NOTE: `soil_params.b` may be deprecated in the future in favor of `b`
     else if (param_key == "smcmax" || param_key == "soil_params.smcmax") {
       if (param_value == "bmi" || param_value == "BMI") {
-	parameters->smcmax_bmi = true;
+        parameters->smcmax_bmi = true;
       }
       else {
-	vector<double> vec = ReadVectorData(param_key, param_value);
-	parameters->smcmax = new double[vec.size()];
+        vector<double> vec = ReadVectorData(param_key, param_value);
+        parameters->smcmax = new double[vec.size()];
 
-	for (unsigned int i=0; i < vec.size(); i++) {
-	  assert (vec[i] > 0);
-	  parameters->smcmax[i] = vec[i];
-	}
+        for (unsigned int i=0; i < vec.size(); i++) {
+          if (!(vec[i] > 0.0)) {
+            LOG(LogLevel::SEVERE,
+                "SMP config %s: smcmax[%u] = %f is invalid. Must be > 0.0.",
+                config_file.c_str(), i, vec[i]);
+            assert(vec[i] > 0.0);
+          }
+          parameters->smcmax[i] = vec[i];
+        }
 
-	parameters->smcmax_bmi = false;
-	parameters->num_layers = vec.size();
-	assert (parameters->num_layers > 0);
-	is_smcmax_set = true;
+        parameters->smcmax_bmi = false;
+        parameters->num_layers = vec.size();
+        if (!(parameters->num_layers > 0)) {
+          LOG(LogLevel::SEVERE,
+              "SMP config %s: num_layers (from smcmax) = %d is invalid. Must be > 0.",
+              config_file.c_str(), parameters->num_layers);
+          assert(parameters->num_layers > 0);
+        }
+        is_smcmax_set = true;
       }
 
       continue;
     }
-	// NOTE: `soil_params.b` may be deprecated in the future in favor of `b`
     else if (param_key == "b" || param_key == "soil_params.b") {
       parameters->b = stod(param_value);
-      assert (parameters->b > 0);
+      if (!(parameters->b > 0.0)) {
+        LOG(LogLevel::SEVERE,
+            "SMP config %s: b (Clapp-Hornberger parameter) = %f is invalid. Must be > 0.0.",
+            config_file.c_str(), parameters->b);
+        assert(parameters->b > 0.0);
+      }
       is_b_set = true;
       continue;
     }
-	// NOTE: `soil_params.satpsi` may be deprecated in the future in favor of `satpsi`
+    // NOTE: `soil_params.satpsi` may be deprecated in the future in favor of `satpsi`
     else if (param_key == "satpsi" || param_key == "soil_params.satpsi") {
       parameters->satpsi = stod(param_value);
-      assert (parameters->satpsi > 0.0);
+      if (!(parameters->satpsi > 0.0)) {
+        LOG(LogLevel::SEVERE,
+            "SMP config %s: satpsi = %f is invalid. Must be > 0.0.",
+            config_file.c_str(), parameters->satpsi);
+        assert(parameters->satpsi > 0.0);
+      }
       is_satpsi_set = true;
       continue;
     }
@@ -208,7 +228,12 @@ InitFromConfigFile(string config_file, struct soil_profile_parameters* parameter
     }
     else if (param_key == "soil_storage_depth") {
       parameters->soil_storage_model_depth = stod(param_value);
-      assert (parameters->soil_storage_model_depth > 0);
+      if (!(parameters->soil_storage_model_depth > 0.0)) {
+        LOG(LogLevel::SEVERE,
+            "SMP config %s: soil_storage_model_depth = %f is invalid. Must be > 0.0.",
+            config_file.c_str(), parameters->soil_storage_model_depth);
+        assert(parameters->soil_storage_model_depth > 0.0);
+      }
       is_soil_storage_model_depth_set = true;
       continue;
     }
@@ -306,8 +331,18 @@ InitFromConfigFile(string config_file, struct soil_profile_parameters* parameter
       parameters->water_table_depth = 6.0;
     }
 
-    assert (parameters->num_wetting_fronts > 0);
-    assert (parameters->water_table_depth >= 0);
+    if (!(parameters->num_wetting_fronts > 0)) {
+      LOG(LogLevel::SEVERE,
+          "SMP config %s: num_wetting_fronts = %d is invalid. Must be > 0.",
+          config_file.c_str(), parameters->num_wetting_fronts);
+      assert(parameters->num_wetting_fronts > 0);
+    }
+    if (!(parameters->water_table_depth >= 0.0)) {
+      LOG(LogLevel::SEVERE,
+          "SMP config %s: water_table_depth = %f is invalid. Must be >= 0.0.",
+          config_file.c_str(), parameters->water_table_depth);
+      assert(parameters->water_table_depth >= 0.0);
+    }  
   }
 
   // check to ensure that options for the topmodel based watertable provided are correct
@@ -327,7 +362,12 @@ InitFromConfigFile(string config_file, struct soil_profile_parameters* parameter
     }
   }
 
-  assert (parameters->ncells > 0);
+  if (!(parameters->ncells > 0)) {
+    LOG(LogLevel::SEVERE,
+        "SMP config %s: ncells = %d is invalid. Must be > 0.",
+        config_file.c_str(), parameters->ncells);
+    assert(parameters->ncells > 0);
+  }
 
 }
 
@@ -441,8 +481,12 @@ SoilMoistureProfileFromConceptualReservoir(struct soil_profile_parameters* param
   double soil_storage_change_per_timestep_cm = fabs(parameters->soil_storage_change_per_timestep * 100.0);
   double soil_storage_current_timestep_cm    = 100.0 * parameters->soil_storage;  // storage at the current timestep
 
-  assert(parameters->soil_storage > 0.0); /* to ensure that soil storage is non-zero due to unexpected
-					      bugs (either in the models or calibration tools) */
+  if (!(parameters->soil_storage > 0.0)) {
+    LOG(LogLevel::SEVERE,
+        "SMP conceptual: soil_storage = %f is invalid. Must be > 0.0 (check CFE / calibration).",
+        parameters->soil_storage);
+    assert(parameters->soil_storage > 0.0); // keep assert to halt in debug
+  }
 
   int count = 0;
 
@@ -559,8 +603,18 @@ SoilMoistureProfileFromConceptualReservoir(struct soil_profile_parameters* param
   }
 
   for (int i=1; i<parameters->ncells; i++) {
-    assert (parameters->soil_moisture_profile[i] <= parameters->smcmax[0]);
-    assert (parameters->soil_moisture_profile[i] > 0.0);
+    if (!(parameters->soil_moisture_profile[i] <= parameters->smcmax[0])) {
+      LOG(LogLevel::SEVERE,
+          "SMP conceptual: soil_moisture_profile[%d] = %f exceeds smcmax[0] = %f.",
+          i, parameters->soil_moisture_profile[i], parameters->smcmax[0]);
+      assert(parameters->soil_moisture_profile[i] <= parameters->smcmax[0]);
+    }
+    if (!(parameters->soil_moisture_profile[i] > 0.0)) {
+      LOG(LogLevel::SEVERE,
+          "SMP conceptual: soil_moisture_profile[%d] = %f is invalid. Must be > 0.0.",
+          i, parameters->soil_moisture_profile[i]);
+      assert(parameters->soil_moisture_profile[i] > 0.0);
+    }
   }
 }
 
@@ -772,7 +826,12 @@ FindWaterTableLayeredReservoir(struct soil_profile_parameters* parameters)
       double z_head = initial_head + dz;
       theta = pow((parameters->satpsi/z_head),lam) * parameters->smcmax[num_layers-1];
 
-      assert (theta <= parameters->smcmax[num_layers-1]);
+      if (!(theta <= parameters->smcmax[num_layers-1])) {
+        LOG(LogLevel::SEVERE,
+            "SMP layered: theta = %f exceeds smcmax[%d] = %f while searching for water table.",
+            theta, num_layers-1, parameters->smcmax[num_layers-1]);
+        assert(theta <= parameters->smcmax[num_layers-1]);
+      }
 
       if (theta <= target_theta)
 	break;
