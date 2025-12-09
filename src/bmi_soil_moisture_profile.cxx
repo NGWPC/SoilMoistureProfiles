@@ -429,13 +429,28 @@ GetValueAtIndices (std::string name, void *dest, int *inds, int len)
 void BmiSoilMoistureProfile::
 ResetSize (std::string name)
 {
-// reset the size of wetting fronts array to the number of wetting fronts at the timestep
+  // reset the size of wetting fronts array to the number of wetting fronts at the timestep
+
   if (name.compare("soil_moisture_wetting_fronts") == 0) {
-    assert (this->state->num_wetting_fronts > 0);
+
+    if (!(this->state->num_wetting_fronts > 0)) {
+      LOG(LogLevel::SEVERE,
+          "SMP BMI ResetSize: num_wetting_fronts = %d for variable '%s' is invalid. Must be > 0.",
+          this->state->num_wetting_fronts, name.c_str());
+      assert(this->state->num_wetting_fronts > 0);
+    }
+
     state->soil_moisture_wetting_fronts = new double[this->state->num_wetting_fronts]();
   }
   else if (name.compare("soil_depth_wetting_fronts") == 0) {
-    assert (this->state->num_wetting_fronts > 0);
+
+    if (!(this->state->num_wetting_fronts > 0)) {
+      LOG(LogLevel::SEVERE,
+          "SMP BMI ResetSize: num_wetting_fronts = %d for variable '%s' is invalid. Must be > 0.",
+          this->state->num_wetting_fronts, name.c_str());
+      assert(this->state->num_wetting_fronts > 0);
+    }
+
     state->soil_depth_wetting_fronts = new double[this->state->num_wetting_fronts]();
   }
 }
