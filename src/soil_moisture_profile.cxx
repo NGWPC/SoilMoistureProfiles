@@ -159,14 +159,21 @@ void soil_moisture_profile::InitFromConfigFile(
                 vector<double> vec = ReadVectorData(param_key, param_value);
                 parameters->smcmax = new double[vec.size()];
 
+                if (!(vec.size() > 0)) {
+                    LOG(LogLevel::FATAL, "Invalid number of layers. %d must be > 0, param_key=%s, param_value=%s",
+                        vec.size(), param_key.c_str(), param_value.c_str());
+                    throw std::runtime_error("Invalid number of layers for smcmax");
+                }
                 for (unsigned int i = 0; i < vec.size(); i++) {
-                    assert(vec[i] > 0);
+                    if (!(vec[i] > 0)) {
+                        LOG(LogLevel::FATAL, "Bad data. vec[%d]= %f must be > 0, param_key=%s, param_value=%s",
+                            i, vec[i], param_key.c_str(), param_value.c_str());
+                        throw std::runtime_error("Bad smcmax data");
+                    }
                     parameters->smcmax[i] = vec[i];
                 }
-
                 parameters->smcmax_bmi = false;
                 parameters->num_layers = vec.size();
-                assert(parameters->num_layers > 0);
                 is_smcmax_set = true;
             }
 
@@ -175,14 +182,20 @@ void soil_moisture_profile::InitFromConfigFile(
         // NOTE: `soil_params.b` may be deprecated in the future in favor of `b`
         else if (param_key == "b" || param_key == "soil_params.b") {
             parameters->b = stod(param_value);
-            assert(parameters->b > 0);
+            if (!(parameters->b > 0)) {
+                LOG(LogLevel::FATAL, "Parameter %s=%d must be > 0", param_key.c_str(), parameters->b);
+                throw std::runtime_error("Bad b value");
+            }
             is_b_set = true;
             continue;
         }
         // NOTE: `soil_params.satpsi` may be deprecated in the future in favor of `satpsi`
         else if (param_key == "satpsi" || param_key == "soil_params.satpsi") {
             parameters->satpsi = stod(param_value);
-            assert(parameters->satpsi > 0.0);
+            if (!(parameters->satpsi > 0.0)) {
+                LOG(LogLevel::FATAL, "Parameter %s=%f must be > 0.0", param_key.c_str(), parameters->satpsi);
+                throw std::runtime_error("Bad satpsi value");
+            }
             is_satpsi_set = true;
             continue;
         } else if (param_key == "soil_storage_model") {
@@ -203,7 +216,10 @@ void soil_moisture_profile::InitFromConfigFile(
             continue;
         } else if (param_key == "soil_storage_depth") {
             parameters->soil_storage_model_depth = stod(param_value);
-            assert(parameters->soil_storage_model_depth > 0);
+            if (!(parameters->soil_storage_model_depth > 0)) {
+                LOG(LogLevel::FATAL, "Parameter %s=%d must be > 0", param_key.c_str(), parameters->soil_storage_model_depth);
+                throw std::runtime_error("Bad soil_storage_model_depth value");
+            }
             is_soil_storage_model_depth_set = true;
             continue;
         } else if (param_key == "water_table_depth") {
@@ -236,6 +252,7 @@ void soil_moisture_profile::InitFromConfigFile(
     if (!is_soil_z_set) {
         stringstream errMsg;
         errMsg << "soil_z not set in the config file " << config_file << "\n";
+        LOG(LogLevel::FATAL, errMsg.str());
         throw runtime_error(errMsg.str());
     }
 
@@ -243,6 +260,7 @@ void soil_moisture_profile::InitFromConfigFile(
         if (parameters->soil_storage_model == Layered) {
             stringstream errMsg;
             errMsg << "soil_depth_layers not set in the config file " << config_file << "\n";
+            LOG(LogLevel::FATAL, errMsg.str());
             throw runtime_error(errMsg.str());
         }
     }
@@ -250,6 +268,7 @@ void soil_moisture_profile::InitFromConfigFile(
     if (!is_smcmax_set) {
         stringstream errMsg;
         errMsg << "smcmax not set in the config file " << config_file << "\n";
+        LOG(LogLevel::FATAL, errMsg.str());
         throw runtime_error(errMsg.str());
     }
 
@@ -257,12 +276,14 @@ void soil_moisture_profile::InitFromConfigFile(
         stringstream errMsg;
         errMsg << "b (Clapp-Hornberger's parameter) not set in the config file " << config_file
                << "\n";
+        LOG(LogLevel::FATAL, errMsg.str());
         throw runtime_error(errMsg.str());
     }
 
     if (!is_satpsi_set) {
         stringstream errMsg;
         errMsg << "satpsi not set in the config file " << config_file << "\n";
+        LOG(LogLevel::FATAL, errMsg.str());
         throw runtime_error(errMsg.str());
     }
 
@@ -273,6 +294,7 @@ void soil_moisture_profile::InitFromConfigFile(
     if (!is_soil_storage_model_depth_set && parameters->soil_storage_model == Conceptual) {
         stringstream errMsg;
         errMsg << "soil_storage_model_depth not set in the config file " << config_file << "\n";
+        LOG(LogLevel::FATAL, errMsg.str());
         throw runtime_error(errMsg.str());
     }
 
@@ -280,6 +302,7 @@ void soil_moisture_profile::InitFromConfigFile(
         stringstream errMsg;
         errMsg << "soil_storage_model not set in the config file " << config_file
                << ". Options 'conceptual or layered' \n";
+        LOG(LogLevel::FATAL, errMsg.str());
         throw runtime_error(errMsg.str());
     }
 
@@ -288,6 +311,7 @@ void soil_moisture_profile::InitFromConfigFile(
             stringstream errMsg;
             errMsg << "soil_moisture_profile_option_set key is not set in the config file "
                    << config_file << ", options = constant or linear \n";
+            LOG(LogLevel::FATAL, errMsg.str());
             throw runtime_error(errMsg.str());
         }
 
@@ -295,8 +319,17 @@ void soil_moisture_profile::InitFromConfigFile(
             parameters->water_table_depth = 6.0;
         }
 
-        assert(parameters->num_wetting_fronts > 0);
-        assert(parameters->water_table_depth >= 0);
+        if (!(parameters->num_wetting_fronts > 0)) {
+            LOG(LogLevel::FATAL,"Invalid Layered soil storage model parameter. num_wetting_fronts = %d. Must be > 0",
+                parameters->num_wetting_fronts);
+            throw std::runtime_error("Bad num_wetting_fronts value");
+        }
+
+        if (!(parameters->water_table_depth >= 0)) {
+            LOG(LogLevel::FATAL,"Invalid Layered soil storage model parameter. water_table_depth = %d. Must be >= 0",
+                parameters->water_table_depth);
+            throw std::runtime_error("Bad water_table_depth value");
+        }
     }
 
     // check to ensure that options for the topmodel based watertable provided are correct
@@ -308,16 +341,22 @@ void soil_moisture_profile::InitFromConfigFile(
                 stringstream errMsg;
                 errMsg << "water_table_based_method key is set in the config file " << config_file
                        << " with wrong options. Options = flux_based or deficit_based \n";
+                LOG(LogLevel::FATAL, errMsg.str());
                 throw runtime_error(errMsg.str());
             }
         } else {
             stringstream errMsg;
             errMsg << "soil_storage_model is set to Topmodel in the config file " << config_file
                    << ", but water_table_based_method is not set. Options = iterative or deficit \n";
+            LOG(LogLevel::FATAL, errMsg.str());
             throw runtime_error(errMsg.str());
         }
     }
-    assert(parameters->ncells > 0);
+
+    if (!(parameters->ncells > 0)) {
+        LOG(LogLevel::FATAL,"Invalid parameter. ncells = %d. Must be > 0", parameters->ncells);
+        throw std::runtime_error("Bad ncells");
+    }
 }
 
 void soil_moisture_profile::SoilMoistureProfileUpdate(struct soil_profile_parameters* parameters) {
@@ -337,6 +376,7 @@ void soil_moisture_profile::SoilMoistureProfileUpdate(struct soil_profile_parame
         errMsg << "Soil moisture profile OPTION provided in the config file is "
                << parameters->soil_storage_model
                << ", valid options are concepttual, layered, and topmodel " << "\n";
+        LOG(LogLevel::FATAL, errMsg.str());
         throw runtime_error(errMsg.str());
     }
 
@@ -423,10 +463,12 @@ void soil_moisture_profile::SoilMoistureProfileFromConceptualReservoir(
     double soil_storage_current_timestep_cm =
         100.0 * parameters->soil_storage; // storage at the current timestep
 
-    assert(
-        parameters->soil_storage > 0.0
-    ); /* to ensure that soil storage is non-zero due to unexpected
-           bugs (either in the models or calibration tools) */
+    if (!(parameters->soil_storage > 0.0)) {
+        // to ensure that soil storage is non-zero due to unexpected
+        //  bugs (either in the models or calibration tools) 
+        LOG(LogLevel::FATAL,"Invalid parameter. soil_storage = %f. Must be >= 0.0", parameters->soil_storage);
+        throw std::runtime_error("Bad soil_storage value");
+    }
 
     int count = 0;
 
@@ -529,9 +571,9 @@ void soil_moisture_profile::SoilMoistureProfileFromConceptualReservoir(
         }
     }
 
-    LOG(LogLevel::DEBUG, "Number of iterations  = %d ", count);
-    LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
-    if (verbosity.compare("high") == 0) {
+    if (Logger::GetLogLevel() == LogLevel::DEBUG) {
+        LOG(LogLevel::DEBUG, "Number of iterations  = %d ", count);
+        LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
         PrintSoilMoistureProfile(parameters);
 
         // check compute water in the model domaian
@@ -548,8 +590,12 @@ void soil_moisture_profile::SoilMoistureProfileFromConceptualReservoir(
     }
 
     for (int i = 1; i < parameters->ncells; i++) {
-        assert(parameters->soil_moisture_profile[i] <= parameters->smcmax[0]);
-        assert(parameters->soil_moisture_profile[i] > 0.0);
+        if (!(parameters->soil_moisture_profile[i] <= parameters->smcmax[0]) ||
+            !(parameters->soil_moisture_profile[i] > 0.0)) {
+            LOG(LogLevel::FATAL,"Invalid soil_moisture_profile[%d] parameter = %f. Must be > 0.0 and <= smcmax[0] of %f",
+                i, parameters->soil_moisture_profile[i], parameters->smcmax[0]);
+            throw std::runtime_error("Bad soil_moisture_profile value");
+        }
     }
 }
 
@@ -578,12 +624,13 @@ void soil_moisture_profile::SoilMoistureProfileFromLayeredReservoir(
     int num_wf            = parameters->num_wetting_fronts; // number of wetting fronts
     int num_layers        = parameters->num_layers;
 
-    if (verbosity.compare("high") == 0) {
-        std::cerr << "SoilMoistureProfile: number of wetting fronts = " << num_wf << "\n";
+    if (Logger::GetLogLevel() == LogLevel::DEBUG) {
+        LOG(LogLevel::DEBUG, "SoilMoistureProfile: number of wetting fronts = %d", num_wf);
+        LOG(LogLevel::DEBUG, "SoilMoistureProfile (input): (depth, water_content):");
         for (int i = 0; i < num_wf; i++)
-            std::cerr << "SoilMoistureProfile (input): (depth, water_content) = "
-                      << parameters->soil_depth_wetting_fronts[i] << ", "
-                      << parameters->soil_moisture_wetting_fronts[i] << "\n";
+            LOG(LogLevel::DEBUG, "(%d): (%d, %d) = ",
+                      parameters->soil_depth_wetting_fronts[i],
+                      parameters->soil_moisture_wetting_fronts[i]);
     }
 
     parameters->last_layer_depth = parameters->soil_depth_wetting_fronts[num_wf - 1];
@@ -690,8 +737,8 @@ void soil_moisture_profile::SoilMoistureProfileFromLayeredReservoir(
         }
     }
 
-    LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
-    if (verbosity.compare("high") == 0) {
+    if (Logger::GetLogLevel() == LogLevel::DEBUG) {
+        LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
         PrintSoilMoistureProfile(parameters);
     }
 }
@@ -758,7 +805,11 @@ void soil_moisture_profile::FindWaterTableLayeredReservoir(
             double z_head = initial_head + dz;
             theta = pow((parameters->satpsi / z_head), lam) * parameters->smcmax[num_layers - 1];
 
-            assert(theta <= parameters->smcmax[num_layers - 1]);
+            if (!(theta <= parameters->smcmax[num_layers - 1])) {
+                LOG(LogLevel::FATAL, "Invalid calculated watertable theta = %f. Must be <= smcmax[num_layers(%d) - 1] = %f",
+                    theta, num_layers, parameters->smcmax[num_layers - 1]);
+                throw std::runtime_error("Bad calculated watertable theta");
+            }
 
             if (theta <= target_theta)
                 break;
@@ -792,7 +843,11 @@ ExtendedProfileBelowDomainDepth(struct soil_profile_parameters* parameters) {
     double z_head = initial_head + dz;
     theta = pow((parameters->satpsi/z_head),lam) * parameters->smcmax[num_layers-1];
 
-    assert (theta <= parameters->smcmax[num_layers-1]);
+    if (!(theta <= parameters->smcmax[num_layers - 1])) {
+        LOG(LogLevel::FATAL, "Invalid calculated watertable theta = %f. Must be <= smcmax[num_layers(%d) - 1] = %f",
+            theta, num_layers, parameters->smcmax[num_layers - 1]);
+        throw std::runtime_error("Bad calculated watertable theta");
+    }
 
     if (theta <= target_theta)
       break;
@@ -889,8 +944,8 @@ void soil_moisture_profile::SoilMoistureProfileFromWaterTableDepth(
         }
     }
 
-    LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
-    if (verbosity.compare("high") == 0) {
+    if (Logger::GetLogLevel() == LogLevel::DEBUG) {
+        LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
         PrintSoilMoistureProfile(parameters);
     }
 }
@@ -919,6 +974,7 @@ vector<double> soil_moisture_profile::ReadVectorData(string param_name, string p
             stringstream errMsg;
             errMsg << "Input provided in the config file for parameter " << param_name << " is "
                    << v << ". It should be positive." << "\n";
+            LOG(LogLevel::FATAL, errMsg.str());
             throw runtime_error(errMsg.str());
         }
 
