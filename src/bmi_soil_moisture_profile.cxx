@@ -52,7 +52,6 @@ void BmiSoilMoistureProfile::
 Finalize()
 {
   if (this->state) {
-    LOG(LogLevel::INFO, "Finalizing SMP");
     delete state;
     this->state = NULL;
   }
@@ -304,6 +303,7 @@ GetGridNodeCount(const int grid)
 int BmiSoilMoistureProfile::
 GetGridEdgeCount(const int grid)
 {
+  LOG(LogLevel::SEVERE, "GetGridEdgeCount Not Implemented");
   throw coupler::NotImplemented();
 }
 
@@ -311,6 +311,7 @@ GetGridEdgeCount(const int grid)
 int BmiSoilMoistureProfile::
 GetGridFaceCount(const int grid)
 {
+  LOG(LogLevel::SEVERE, "GetGridFaceCount Not Implemented");
   throw coupler::NotImplemented();
 }
 
@@ -318,6 +319,7 @@ GetGridFaceCount(const int grid)
 void BmiSoilMoistureProfile::
 GetGridEdgeNodes(const int grid, int *edge_nodes)
 {
+  LOG(LogLevel::SEVERE, "GetGridEdgeNodes Not Implemented");
   throw coupler::NotImplemented();
 }
 
