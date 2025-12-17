@@ -944,6 +944,9 @@ void soil_moisture_profile::SoilMoistureProfileFromWaterTableDepth(
         }
     }
 
+    delete smct_temp;
+    delete z_temp;
+
     if (Logger::GetLogLevel() == LogLevel::DEBUG) {
         LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
         PrintSoilMoistureProfile(parameters);
