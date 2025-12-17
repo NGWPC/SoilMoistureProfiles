@@ -34,8 +34,8 @@ void soil_moisture_profile::SoilMoistureProfile(
 
     parameters->soil_moisture_profile = new double[parameters->ncells];
 
-    parameters->soil_moisture_wetting_fronts = new double[parameters->shape[1]]();
-    parameters->soil_depth_wetting_fronts    = new double[parameters->shape[1]]();
+    parameters->soil_moisture_wetting_fronts.resize(parameters->shape[1]);
+    parameters->soil_depth_wetting_fronts.resize(parameters->shape[1]);
 
     // For water_table_based_method
     parameters->cat_area           = 1.0; // catchment area used in the topmodel (normalized)
