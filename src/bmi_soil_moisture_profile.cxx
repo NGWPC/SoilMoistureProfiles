@@ -434,13 +434,17 @@ ResetSize (std::string name)
 // reset the size of wetting fronts array to the number of wetting fronts at the timestep
   if (name.compare("soil_moisture_wetting_fronts") == 0) {
     if (this->state->num_wetting_fronts <= 0) {
-      LOG(LogLevel::SEVERE, "The number of wetting fronts must be greater than zero. The current number of wetting fronts is %d.", this->state->num_wetting_fronts);
+      std::string error_msg = "The number of wetting fronts must be greater than zero. The current number of wetting fronts is " + std::to_string(this->state->num_wetting_fronts);
+      LOG(LogLevel::FATAL, error_msg);
+      throw std::out_of_range(error_msg);
     }
     state->soil_moisture_wetting_fronts.resize(this->state->num_wetting_fronts);
   }
   else if (name.compare("soil_depth_wetting_fronts") == 0) {
     if (this->state->num_wetting_fronts <= 0) {
-      LOG(LogLevel::SEVERE, "The number of wetting fronts must be greater than zero. The current number of wetting fronts is %d.", this->state->num_wetting_fronts);
+      std::string error_msg = "The number of wetting fronts must be greater than zero. The current number of wetting fronts is " + std::to_string(this->state->num_wetting_fronts);
+      LOG(LogLevel::FATAL, error_msg);
+      throw std::out_of_range(error_msg);
     }
     state->soil_depth_wetting_fronts.resize(this->state->num_wetting_fronts);
   }
