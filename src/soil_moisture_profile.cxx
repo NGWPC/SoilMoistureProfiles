@@ -34,8 +34,8 @@ void soil_moisture_profile::SoilMoistureProfile(
 
     parameters->soil_moisture_profile = new double[parameters->ncells];
 
-    parameters->soil_moisture_wetting_fronts = new double[parameters->shape[1]]();
-    parameters->soil_depth_wetting_fronts    = new double[parameters->shape[1]]();
+    parameters->soil_moisture_wetting_fronts.resize(parameters->shape[1]);
+    parameters->soil_depth_wetting_fronts.resize(parameters->shape[1]);
 
     // For water_table_based_method
     parameters->cat_area           = 1.0; // catchment area used in the topmodel (normalized)
@@ -943,6 +943,9 @@ void soil_moisture_profile::SoilMoistureProfileFromWaterTableDepth(
             }
         }
     }
+
+    delete[] smct_temp;
+    delete[] z_temp;
 
     if (Logger::GetLogLevel() == LogLevel::DEBUG) {
         LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);

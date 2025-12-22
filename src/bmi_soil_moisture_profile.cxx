@@ -374,9 +374,9 @@ GetValuePtr (std::string name)
   else if (name.compare("soil_moisture_profile") == 0)
     return (void*)this->state->soil_moisture_profile;
   else if (name.compare("soil_moisture_wetting_fronts") == 0)
-    return (void*)this->state->soil_moisture_wetting_fronts;
+    return this->state->soil_moisture_wetting_fronts.data();
   else if (name.compare("soil_depth_wetting_fronts") == 0)
-    return (void*)this->state->soil_depth_wetting_fronts;
+    return this->state->soil_depth_wetting_fronts.data();
   else if (name.compare("soil_storage_model") == 0)
     return (void*)(&this->state->soil_storage_model);
   else if (name.compare("num_wetting_fronts") == 0)
@@ -433,15 +433,23 @@ ResetSize (std::string name)
 {
 // reset the size of wetting fronts array to the number of wetting fronts at the timestep
   if (name.compare("soil_moisture_wetting_fronts") == 0) {
-    assert (this->state->num_wetting_fronts > 0);
-    state->soil_moisture_wetting_fronts = new double[this->state->num_wetting_fronts]();
+    if (this->state->num_wetting_fronts <= 0) {
+      std::string error_msg = "The number of wetting fronts must be greater than zero. The current number of wetting fronts is " + std::to_string(this->state->num_wetting_fronts);
+      LOG(LogLevel::FATAL, error_msg);
+      throw std::out_of_range(error_msg);
+    }
+    state->soil_moisture_wetting_fronts.resize(this->state->num_wetting_fronts);
   }
   else if (name.compare("soil_depth_wetting_fronts") == 0) {
-    assert (this->state->num_wetting_fronts > 0);
-    state->soil_depth_wetting_fronts = new double[this->state->num_wetting_fronts]();
+    if (this->state->num_wetting_fronts <= 0) {
+      std::string error_msg = "The number of wetting fronts must be greater than zero. The current number of wetting fronts is " + std::to_string(this->state->num_wetting_fronts);
+      LOG(LogLevel::FATAL, error_msg);
+      throw std::out_of_range(error_msg);
+    }
+    state->soil_depth_wetting_fronts.resize(this->state->num_wetting_fronts);
   }
 }
-  
+
 void BmiSoilMoistureProfile::
 SetValue (std::string name, void *src)
 {
