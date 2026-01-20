@@ -82,6 +82,7 @@ GetVarGrid(std::string name)
     || name.compare("global_deficit") == 0
     || name.compare("b") == 0
     || name.compare("satpsi") == 0
+    || name.compare("reset_time") == 0
   ) // double
     return 1;
   else if (
@@ -462,6 +463,9 @@ SetValue (std::string name, void *src)
     return;
   } else if (name.compare("serialization_free") == 0) {
     this->free_serialized();
+    return;
+  } else if (name == "reset_time") {
+    // This BMI does not increment its time, so no action needs to be done.
     return;
   }
   void * dest = NULL;
