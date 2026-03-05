@@ -1,7 +1,7 @@
 #include "bmi_struct_sacsma.hxx"
 #include "bmi_sacsma.hxx"   // contains all extern "C" Fortran wrappers
 
-Bmi_sacsma_struct* register_bmi_sacsma(Bmi_sacsma_struct* model) {
+Bmi_sacsma_struct* register_bmi_sac(Bmi_sacsma_struct* model) {
 
     if (!model) return nullptr;
 

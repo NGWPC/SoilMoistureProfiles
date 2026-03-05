@@ -51,7 +51,7 @@ main(int argc, const char *argv[]) {
   ************************************************************************/
   LOG("Registering BMI SACSMA", LogLevel::DEBUG);
   Bmi_sacsma_struct sacsma_bmi;
-  if (!register_bmi_sacsma(&sacsma_bmi)) {
+  if (!register_bmi_sac(&sacsma_bmi)) {
     LOG("Registering BMI SACSMA failed", LogLevel::FATAL);
     exit(1);
   }

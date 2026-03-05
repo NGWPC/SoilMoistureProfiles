@@ -95,7 +95,7 @@ typedef struct Bmi_sacsma_struct{
 } Bmi_sacsma_struct;
 
 /* Registration helper */
-Bmi_sacsma_struct* register_bmi_sacsma(Bmi_sacsma_struct* model);
+Bmi_sacsma_struct* register_bmi_sac(Bmi_sacsma_struct* model);
 
 #ifdef __cplusplus
 }
