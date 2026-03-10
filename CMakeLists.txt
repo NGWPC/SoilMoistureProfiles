@@ -18,7 +18,6 @@ project(smpbmi VERSION 1.0.0 DESCRIPTION "OWP SMP BMI Module Shared Library")
 option(NGEN "NGEN" OFF)
 option(CFE "CFE" OFF)
 option(TOPMODEL "TOPMODEL" OFF)
-option(SAC "SAC" OFF)
 
 if(NGEN)
    add_definitions(-DNGEN)
@@ -30,9 +29,6 @@ set(exe_name "smp_cfe")
 elseif(TOPMODEL)
 message("${Red} Soil moisture profile for topmodel (watertable-based)! ${ColourReset}")
 set(exe_name "smp_topmodel")
-elseif(SAC)
-message("${Red} Soil moisture profile for SACSMA! ${ColourReset}")
-set(exe_name "smp_sac")
 endif()
 
 # SMP
@@ -58,17 +54,10 @@ if(CFE)
 elseif(TOPMODEL)
   add_executable(${exe_name} ./src/main_smp_topmodel.cxx ./extern/topmodel/src/topmodel.c ./extern/topmodel/src/bmi_topmodel.c)
   target_include_directories(${exe_name} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/extern/topmodel/include)
-elseif(SAC)
-  file(GLOB_RECURSE SACSMA_SOURCES
-      CONFIGURE_DEPENDS
-      ${CMAKE_CURRENT_SOURCE_DIR}/extern/sac-sma/sac-sma/src/*.f90
-      ${CMAKE_CURRENT_SOURCE_DIR}/extern/sac-sma/sac-sma/src/*.f
-  )
-  add_executable(${exe_name} ./src/main_smp_sacsma.cxx ${SACSMA_SOURCES})
 endif()
 
 
-if(TOPMODEL OR CFE OR SAC)
+if(TOPMODEL OR CFE)
   add_library(smplib ./src/bmi_soil_moisture_profile.cxx ./src/soil_moisture_profile.cxx ./include/bmi_soil_moisture_profile.hxx
                      ./include/soil_moisture_profile.hxx)
   target_link_libraries(${exe_name} LINK_PUBLIC smplib)
