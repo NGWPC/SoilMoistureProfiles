@@ -375,7 +375,7 @@ void soil_moisture_profile::SoilMoistureProfileUpdate(struct soil_profile_parame
         stringstream errMsg;
         errMsg << "Soil moisture profile OPTION provided in the config file is "
                << parameters->soil_storage_model
-               << ", valid options are concepttual, layered, and topmodel " << "\n";
+               << ", valid options are conceptual, layered, and topmodel " << "\n";
         LOG(LogLevel::FATAL, errMsg.str());
         throw runtime_error(errMsg.str());
     }
@@ -465,9 +465,9 @@ void soil_moisture_profile::SoilMoistureProfileFromConceptualReservoir(
 
     if (!(parameters->soil_storage > 0.0)) {
         // to ensure that soil storage is non-zero due to unexpected
-        //  bugs (either in the models or calibration tools) 
-        LOG(LogLevel::FATAL,"Invalid parameter. soil_storage = %f. Must be >= 0.0", parameters->soil_storage);
-        throw std::runtime_error("Bad soil_storage value");
+        //  bugs (either in the models or calibration tools)
+        LOG(LogLevel::WARNING,"Invalid parameter. soil_storage = %f. Must be >= 0.0. Initializing the soil storage to 0.0001.", parameters->soil_storage);
+        parameters->soil_storage = 0.0001;
     }
 
     int count = 0;
