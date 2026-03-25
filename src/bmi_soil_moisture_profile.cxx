@@ -20,6 +20,13 @@
 void BmiSoilMoistureProfile::
 Initialize (std::string config_file)
 {
+    // Initialize the Error, Warning and Trapping System
+#ifdef EWTS_HAVE_NGEN_BRIDGE    
+  EwtsInit(EWTS_ID_SMP, true);
+#else
+  EwtsInit(EWTS_ID_SMP, false);
+#endif  
+
   LOG(LogLevel::INFO, "Initializing SMP");
   if (config_file.compare("") != 0 ) {
     this->state = new soil_moisture_profile::soil_profile_parameters;

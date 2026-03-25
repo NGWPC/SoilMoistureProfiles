@@ -571,7 +571,7 @@ void soil_moisture_profile::SoilMoistureProfileFromConceptualReservoir(
         }
     }
 
-    if (Logger::GetLogLevel() == LogLevel::DEBUG) {
+    if (GetLogLevel() == LogLevel::DEBUG) {
         LOG(LogLevel::DEBUG, "Number of iterations  = %d ", count);
         LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
         PrintSoilMoistureProfile(parameters);
@@ -624,7 +624,7 @@ void soil_moisture_profile::SoilMoistureProfileFromLayeredReservoir(
     int num_wf            = parameters->num_wetting_fronts; // number of wetting fronts
     int num_layers        = parameters->num_layers;
 
-    if (Logger::GetLogLevel() == LogLevel::DEBUG) {
+    if (GetLogLevel() == LogLevel::DEBUG) {
         LOG(LogLevel::DEBUG, "SoilMoistureProfile: number of wetting fronts = %d", num_wf);
         LOG(LogLevel::DEBUG, "SoilMoistureProfile (input): (depth, water_content):");
         for (int i = 0; i < num_wf; i++)
@@ -737,7 +737,7 @@ void soil_moisture_profile::SoilMoistureProfileFromLayeredReservoir(
         }
     }
 
-    if (Logger::GetLogLevel() == LogLevel::DEBUG) {
+    if (GetLogLevel() == LogLevel::DEBUG) {
         LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
         PrintSoilMoistureProfile(parameters);
     }
@@ -947,7 +947,7 @@ void soil_moisture_profile::SoilMoistureProfileFromWaterTableDepth(
     delete[] smct_temp;
     delete[] z_temp;
 
-    if (Logger::GetLogLevel() == LogLevel::DEBUG) {
+    if (GetLogLevel() == LogLevel::DEBUG) {
         LOG(LogLevel::DEBUG, "Water table depth (m) = %f ", parameters->water_table_depth);
         PrintSoilMoistureProfile(parameters);
     }
