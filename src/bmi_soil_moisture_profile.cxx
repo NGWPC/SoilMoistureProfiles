@@ -17,19 +17,20 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 
+
 void BmiSoilMoistureProfile::
 Initialize (std::string config_file)
 {
-    // Initialize the Error, Warning and Trapping System
-#ifdef EWTS_HAVE_NGEN_BRIDGE    
+#ifdef EWTS_HAVE_NGEN_BRIDGE
   EwtsInit(EWTS_ID_SMP, true);
 #else
   EwtsInit(EWTS_ID_SMP, false);
-#endif  
+#endif
 
   LOG(LogLevel::INFO, "Initializing SMP");
+
   if (config_file.compare("") != 0 ) {
-    this->state = new soil_moisture_profile::soil_profile_parameters;
+    this->state = new soil_moisture_profile::soil_profile_parameters();
     soil_moisture_profile::SoilMoistureProfile(config_file, state);
   }
   else {
@@ -59,9 +60,23 @@ void BmiSoilMoistureProfile::
 Finalize()
 {
   if (this->state) {
-    delete state;
-    this->state = NULL;
+    delete [] this->state->soil_moisture_profile;
+    this->state->soil_moisture_profile = nullptr;
+
+    delete [] this->state->smcmax;
+    this->state->smcmax = nullptr;
+
+    delete [] this->state->soil_z;
+    this->state->soil_z = nullptr;
+
+    delete [] this->state->soil_depth_layers;
+    this->state->soil_depth_layers = nullptr;
+
+    delete this->state;
+    this->state = nullptr;
   }
+
+  this->free_serialized();
 }
 
 void BmiSoilMoistureProfile::
@@ -198,11 +213,18 @@ GetVarLocation(std::string name)
     return "none";
 }
 
-
 void BmiSoilMoistureProfile::
 GetGridShape(const int grid, int *shape)
 {
-  if (grid == 2) {
+  if (shape == nullptr) {
+    LOG(LogLevel::FATAL, "GetGridShape received null shape pointer");
+    throw std::runtime_error("Null shape pointer");
+  }
+
+  if (grid == 0 || grid == 1 || grid == 5 || grid == 6) {
+    shape[0] = 1;
+  }
+  else if (grid == 2) {
     shape[0] = this->state->shape[0];
   }
   else if (grid == 3) {
@@ -211,8 +233,11 @@ GetGridShape(const int grid, int *shape)
   else if (grid == 4) {
     shape[0] = this->state->num_layers;
   }
+  else {
+    LOG(LogLevel::FATAL, "Invalid grid id %d in GetGridShape", grid);
+    throw std::runtime_error("Invalid grid id in GetGridShape");
+  }
 }
-
 
 void BmiSoilMoistureProfile::
 GetGridSpacing (const int grid, double * spacing)
@@ -231,16 +256,14 @@ GetGridOrigin (const int grid, double *origin)
   }
 }
 
-
 int BmiSoilMoistureProfile::
 GetGridRank(const int grid)
 {
-  if (grid <= 3)
+  if (grid >= 0 && grid <= 6)
     return 1;
   else
     return -1;
 }
-
 
 int BmiSoilMoistureProfile::
 GetGridSize(const int grid)
@@ -355,18 +378,29 @@ GetGridNodesPerFace(const int grid, int *nodes_per_face)
   throw coupler::NotImplemented();
 }
 
-
 void BmiSoilMoistureProfile::
 GetValue (std::string name, void *dest)
 {
-  void * src = NULL;
-  int nbytes = 0;
+  if (dest == nullptr) {
+    LOG(LogLevel::FATAL, "GetValue received null destination for variable %s", name.c_str());
+    throw std::runtime_error("Null destination in GetValue");
+  }
 
-  src = this->GetValuePtr(name);
-  nbytes = this->GetVarNbytes(name);
-  memcpy (dest, src, nbytes);
+  void *src = this->GetValuePtr(name);
+  int nbytes = this->GetVarNbytes(name);
+
+  if (src == nullptr) {
+    LOG(LogLevel::FATAL, "GetValue received null source for variable %s", name.c_str());
+    throw std::runtime_error("Null source in GetValue");
+  }
+
+  if (nbytes <= 0) {
+    LOG(LogLevel::FATAL, "GetValue computed invalid nbytes=%d for variable %s", nbytes, name.c_str());
+    throw std::runtime_error("Invalid nbytes in GetValue");
+  }
+
+  memcpy(dest, src, nbytes);
 }
-
 
 void *BmiSoilMoistureProfile::
 GetValuePtr (std::string name)
@@ -414,112 +448,179 @@ GetValuePtr (std::string name)
   }
 }
 
-
 void BmiSoilMoistureProfile::
 GetValueAtIndices (std::string name, void *dest, int *inds, int len)
 {
-  void * src = NULL;
+  if (dest == nullptr || inds == nullptr) {
+    LOG(LogLevel::FATAL, "GetValueAtIndices received null input for variable %s", name.c_str());
+    throw std::runtime_error("Null pointer in GetValueAtIndices");
+  }
 
-  src = this->GetValuePtr(name);
+  void *src = this->GetValuePtr(name);
+  if (src == nullptr) {
+    LOG(LogLevel::FATAL, "GetValueAtIndices received null source for variable %s", name.c_str());
+    throw std::runtime_error("Null source in GetValueAtIndices");
+  }
 
-  if (src) {
-    int i;
-    int itemsize = 0;
-    int offset;
-    char *ptr;
+  int itemsize = this->GetVarItemsize(name);
+  int gridsize = this->GetGridSize(this->GetVarGrid(name));
 
-    itemsize = this->GetVarItemsize(name);
-    for (i=0, ptr=(char *)dest; i<len; i++, ptr+=itemsize) {
-      offset = inds[i] * itemsize;
-      memcpy(ptr, (char *)src + offset, itemsize);
+  if (itemsize <= 0 || gridsize <= 0) {
+    LOG(LogLevel::FATAL, "Invalid itemsize=%d or gridsize=%d for variable %s",
+        itemsize, gridsize, name.c_str());
+    throw std::runtime_error("Invalid size info in GetValueAtIndices");
+  }
+
+  for (int i = 0; i < len; i++) {
+    if (inds[i] < 0 || inds[i] >= gridsize) {
+      LOG(LogLevel::FATAL, "Index %d out of bounds for variable %s with gridsize=%d",
+          inds[i], name.c_str(), gridsize);
+      throw std::out_of_range("Index out of bounds in GetValueAtIndices");
     }
+
+    int offset = inds[i] * itemsize;
+    memcpy((char*)dest + i * itemsize, (char*)src + offset, itemsize);
   }
 }
 
 void BmiSoilMoistureProfile::
 ResetSize (std::string name)
 {
-// reset the size of wetting fronts array to the number of wetting fronts at the timestep
-  if (name.compare("soil_moisture_wetting_fronts") == 0) {
-    if (this->state->num_wetting_fronts <= 0) {
-      std::string error_msg = "The number of wetting fronts must be greater than zero. The current number of wetting fronts is " + std::to_string(this->state->num_wetting_fronts);
-      LOG(LogLevel::FATAL, error_msg);
-      throw std::out_of_range(error_msg);
-    }
-    state->soil_moisture_wetting_fronts.resize(this->state->num_wetting_fronts);
+  if (this->state == nullptr) {
+    LOG(LogLevel::FATAL, "ResetSize called with null state");
+    throw std::runtime_error("Null state in ResetSize");
   }
-  else if (name.compare("soil_depth_wetting_fronts") == 0) {
+
+  if (name.compare("soil_moisture_wetting_fronts") == 0 ||
+      name.compare("soil_depth_wetting_fronts") == 0) {
+
     if (this->state->num_wetting_fronts <= 0) {
-      std::string error_msg = "The number of wetting fronts must be greater than zero. The current number of wetting fronts is " + std::to_string(this->state->num_wetting_fronts);
+      std::string error_msg =
+        "The number of wetting fronts must be greater than zero. Current num_wetting_fronts = " +
+        std::to_string(this->state->num_wetting_fronts);
       LOG(LogLevel::FATAL, error_msg);
       throw std::out_of_range(error_msg);
     }
-    state->soil_depth_wetting_fronts.resize(this->state->num_wetting_fronts);
+
+    this->state->shape[1] = this->state->num_wetting_fronts;
+
+    if (name.compare("soil_moisture_wetting_fronts") == 0)
+      this->state->soil_moisture_wetting_fronts.resize(this->state->num_wetting_fronts);
+    else
+      this->state->soil_depth_wetting_fronts.resize(this->state->num_wetting_fronts);
   }
 }
 
 void BmiSoilMoistureProfile::
 SetValue (std::string name, void *src)
 {
-  // special cases for state serialization
+  if (src == nullptr &&
+      name != "serialization_create" &&
+      name != "serialization_free" &&
+      name != "reset_time") {
+    LOG(LogLevel::FATAL, "SetValue received null source for variable %s", name.c_str());
+    throw std::runtime_error("Null source in SetValue");
+  }
+
+  // serialization special cases
   if (name.compare("serialization_state") == 0) {
     this->load_serialized((char*)src);
     return;
-  } else if (name.compare("serialization_create") == 0) {
+  }
+  else if (name.compare("serialization_create") == 0) {
     this->new_serialized();
     return;
-  } else if (name.compare("serialization_free") == 0) {
+  }
+  else if (name.compare("serialization_free") == 0) {
     this->free_serialized();
     return;
-  } else if (name == "reset_time") {
-    // This BMI does not increment its time, so no action needs to be done.
+  }
+  else if (name == "reset_time") {
     return;
   }
-  void * dest = NULL;
-  ResetSize(name);
-  
-  dest = this->GetValuePtr(name);
-  
-  if (dest) {
-    int nbytes = 0;
-    nbytes = this->GetVarNbytes(name);
-    memcpy(dest, src, nbytes);
-    
-    if (name.compare("num_wetting_fronts") == 0)
-      this->state->shape[1] = this->state->num_wetting_fronts;
-    
-  }
-  
-}
 
+  if (this->state == nullptr) {
+    LOG(LogLevel::FATAL, "SetValue called before Initialize for variable %s", name.c_str());
+    throw std::runtime_error("Null state in SetValue");
+  }
+
+  // Handle num_wetting_fronts first, before resizing dependent vectors
+  if (name.compare("num_wetting_fronts") == 0) {
+    int new_num_wetting_fronts = *(static_cast<int*>(src));
+
+    if (new_num_wetting_fronts <= 0) {
+      LOG(LogLevel::FATAL,
+          "Invalid num_wetting_fronts=%d. Must be > 0",
+          new_num_wetting_fronts);
+      throw std::out_of_range("Invalid num_wetting_fronts in SetValue");
+    }
+
+    this->state->num_wetting_fronts = new_num_wetting_fronts;
+    this->state->shape[1] = new_num_wetting_fronts;
+    return;
+  }
+
+  ResetSize(name);
+
+  void *dest = this->GetValuePtr(name);
+  if (dest == nullptr) {
+    LOG(LogLevel::FATAL, "SetValue got null destination for variable %s", name.c_str());
+    throw std::runtime_error("Null destination in SetValue");
+  }
+
+  int nbytes = this->GetVarNbytes(name);
+  if (nbytes <= 0) {
+    LOG(LogLevel::FATAL, "SetValue computed invalid nbytes=%d for variable %s", nbytes, name.c_str());
+    throw std::runtime_error("Invalid nbytes in SetValue");
+  }
+
+  memcpy(dest, src, nbytes);
+}
 
 void BmiSoilMoistureProfile::
-SetValueAtIndices (std::string name, int * inds, int len, void *src)
+SetValueAtIndices (std::string name, int *inds, int len, void *src)
 {
-  void * dest = NULL;
+  if (inds == nullptr || src == nullptr) {
+    LOG(LogLevel::FATAL, "SetValueAtIndices received null pointer for variable %s", name.c_str());
+    throw std::runtime_error("Null pointer in SetValueAtIndices");
+  }
+
+  if (this->state == nullptr) {
+    LOG(LogLevel::FATAL, "SetValueAtIndices called before Initialize for variable %s", name.c_str());
+    throw std::runtime_error("Null state in SetValueAtIndices");
+  }
 
   ResetSize(name);
-  
-  dest = this->GetValuePtr(name);
-  
-  if (dest) {
-    int i;
-    int itemsize = 0;
-    int offset;
-    char *ptr;
 
-    itemsize = this->GetVarItemsize(name);
-    
-    for (i=0, ptr=(char *)src; i<len; i++, ptr+=itemsize) {
-      offset = inds[i] * itemsize;
-      memcpy((char *)dest + offset, ptr, itemsize);
-
-      if (name.compare("num_wetting_fronts") == 0)
-	this->state->shape[1] = this->state->num_wetting_fronts;
-    }
+  void *dest = this->GetValuePtr(name);
+  if (dest == nullptr) {
+    LOG(LogLevel::FATAL, "SetValueAtIndices got null destination for variable %s", name.c_str());
+    throw std::runtime_error("Null destination in SetValueAtIndices");
   }
-}
 
+  int itemsize = this->GetVarItemsize(name);
+  int gridsize = this->GetGridSize(this->GetVarGrid(name));
+
+  if (itemsize <= 0 || gridsize <= 0) {
+    LOG(LogLevel::FATAL, "Invalid itemsize=%d or gridsize=%d for variable %s",
+        itemsize, gridsize, name.c_str());
+    throw std::runtime_error("Invalid size info in SetValueAtIndices");
+  }
+
+  for (int i = 0; i < len; i++) {
+    if (inds[i] < 0 || inds[i] >= gridsize) {
+      LOG(LogLevel::FATAL, "Index %d out of bounds for variable %s with gridsize=%d",
+          inds[i], name.c_str(), gridsize);
+      throw std::out_of_range("Index out of bounds in SetValueAtIndices");
+    }
+
+    int offset = inds[i] * itemsize;
+    memcpy((char*)dest + offset, (char*)src + i * itemsize, itemsize);
+  }
+
+  if (name.compare("num_wetting_fronts") == 0)
+    this->state->shape[1] = this->state->num_wetting_fronts;
+}
 
 std::string BmiSoilMoistureProfile::
 GetComponentName()

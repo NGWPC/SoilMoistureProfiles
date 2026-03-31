@@ -78,7 +78,6 @@ void soil_moisture_profile::SoilMoistureProfile(
                                                 only needs to be provided if soil_storage_model is Topmodel
 */
 
-
 void soil_moisture_profile::InitFromConfigFile(
     string config_file,
     struct soil_profile_parameters* parameters
@@ -101,7 +100,7 @@ void soil_moisture_profile::InitFromConfigFile(
     bool is_water_table_depth_set            = false;
     bool is_water_table_based_method_set     = false;
     bool is_soil_moisture_fraction_depth_set = false;
-    bool is_soil_moisture_profile_option_set = false;
+    bool is_soil_moisture_profile_option_set = false; // option for linear or piece-wise constant layered profile
 
     while (fp) {
         string line;
@@ -132,15 +131,13 @@ void soil_moisture_profile::InitFromConfigFile(
             vector<double> vec = ReadVectorData(param_key, param_value);
 
             parameters->soil_z = new double[vec.size()];
-            for (unsigned int i = 0; i < vec.size(); i++)
-                parameters->soil_z[i] = vec[i];
+            for (unsigned int i = 0; i < vec.size(); i++) parameters->soil_z[i] = vec[i];
 
             parameters->ncells     = static_cast<int>(vec.size());
             parameters->soil_depth = parameters->soil_z[parameters->ncells - 1];
             is_soil_z_set          = true;
             continue;
-        }
-        else if (param_key == "soil_depth_layers") {
+        } else if (param_key == "soil_depth_layers") {
             if (param_value == "bmi" || param_value == "BMI") {
                 parameters->soil_depth_layers_bmi = true;
             }
@@ -277,7 +274,8 @@ void soil_moisture_profile::InitFromConfigFile(
     if (!is_soil_depth_layers_set && !parameters->soil_depth_layers_bmi) {
         if (parameters->soil_storage_model == Layered) {
             stringstream errMsg;
-            errMsg << "soil_depth_layers not set in the config file " << config_file << "\n";
+            errMsg << "soil_depth_layers not set in the config file " << config_file 
+		   << "\n";
             LOG(LogLevel::FATAL, errMsg.str());
             throw runtime_error(errMsg.str());
         }
@@ -816,9 +814,9 @@ void soil_moisture_profile::SoilMoistureProfileFromLayeredReservoir(
             throw std::runtime_error("Non-finite soil_moisture_profile");
         }
 
-        if (parameters->soil_moisture_profile[i] <= 0.0) {
+        if (parameters->soil_moisture_profile[i] < 0.0) {
             LOG(LogLevel::FATAL,
-                "soil_moisture_profile[%d]=%f must be > 0.0",
+                "soil_moisture_profile[%d]=%f must be positive",
                 i, parameters->soil_moisture_profile[i]);
             throw std::runtime_error("Non-positive soil_moisture_profile");
         }
@@ -830,6 +828,96 @@ void soil_moisture_profile::SoilMoistureProfileFromLayeredReservoir(
     }
 }
 
+
+void soil_moisture_profile::FindWaterTableLayeredReservoir(
+    struct soil_profile_parameters* parameters
+) {
+    int num_wf     = parameters->num_wetting_fronts;
+    int num_layers = parameters->num_layers;
+    double tolerance = 1.0e-3;
+    double lam       = 1.0 / parameters->b;
+    bool is_water_table_found = false;
+
+    if (num_wf <= 0 || num_layers <= 0) {
+        LOG(LogLevel::FATAL,
+            "Invalid num_wf=%d or num_layers=%d in FindWaterTableLayeredReservoir",
+            num_wf, num_layers);
+        throw std::runtime_error("Bad layered reservoir dimensions");
+    }
+
+    if (fabs(parameters->soil_moisture_wetting_fronts[num_wf - 1] -
+             parameters->smcmax[num_layers - 1]) < tolerance) {
+        is_water_table_found = true;
+        int j = num_wf - 1;
+
+        for (int c = num_layers - 1; c >= 0; c--) {
+            double z1 = 0.0;
+            if (c != 0)
+                z1 = parameters->soil_depth_layers[c - 1];
+
+            while (j >= 0 &&
+                   parameters->soil_depth_wetting_fronts[j] <= parameters->soil_depth_layers[c] &&
+                   parameters->soil_depth_wetting_fronts[j] > z1) {
+
+                bool is_wf_saturated =
+                    fabs(parameters->soil_moisture_wetting_fronts[j] - parameters->smcmax[c]) <
+                    tolerance;
+
+                if (is_wf_saturated && j == 0) {
+                    parameters->water_table_depth = 0.0;
+                    break;
+                }
+                else if (is_wf_saturated && j > 0) {
+                    parameters->water_table_depth = parameters->soil_depth_wetting_fronts[j - 1];
+                    j--;
+                }
+                else {
+                    break;
+                }
+            }
+
+            if (j == 0 && parameters->water_table_depth == 0.0)
+                break;
+        }
+    }
+
+    if (!is_water_table_found) {
+        double target_theta = parameters->soil_moisture_wetting_fronts[num_wf - 1];
+        double dz           = 0.00001;
+        double theta        = 0.0;
+        double initial_head = parameters->satpsi;
+
+        while (fabs(theta - target_theta) > tolerance) {
+            double z_head = initial_head + dz;
+            theta = pow((parameters->satpsi / z_head), lam) * parameters->smcmax[num_layers - 1];
+
+            if (!(theta <= parameters->smcmax[num_layers - 1])) {
+                LOG(LogLevel::FATAL,
+                    "Invalid calculated watertable theta=%f. Must be <= smcmax[num_layers - 1]=%f",
+                    theta, parameters->smcmax[num_layers - 1]);
+                throw std::runtime_error("Bad calculated watertable theta");
+            }
+
+            if (theta <= target_theta)
+                break;
+
+            if (dz >= 100.0)
+                break;
+
+            dz += 0.05;
+        }
+
+        parameters->water_table_depth =
+            parameters->soil_depth_wetting_fronts[num_wf - 1] + dz + parameters->satpsi;
+    }
+
+    if (!std::isfinite(parameters->water_table_depth) || parameters->water_table_depth < 0.0) {
+        LOG(LogLevel::FATAL,
+            "Invalid water_table_depth=%f after FindWaterTableLayeredReservoir",
+            parameters->water_table_depth);
+        throw std::runtime_error("Bad water_table_depth");
+    }
+}
 
 /*
 void soil_moisture_profile::
