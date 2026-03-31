@@ -64,55 +64,53 @@ using namespace std;
 
 namespace soil_moisture_profile {
   
-  struct soil_profile_parameters {
-    int    shape[3];
-    double spacing[8];
-    double origin[3];
+struct soil_profile_parameters {
+  int    shape[3]   = {0, 0, 0};
+  double spacing[8] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+  double origin[3]  = {0.0, 0.0, 0.0};
 
-    double soil_storage;
-    double soil_storage_change_per_timestep;
-    double water_table_depth;
-    double *soil_moisture_profile;
-    
-    double *smcmax;
-    double b;
-    double satpsi;
-    int    ncells;
-    double soil_depth;
-    double soil_depth_NWM;
-    double last_layer_depth;
-    double *soil_z;
+  double soil_storage = 0.0;
+  double soil_storage_change_per_timestep = 0.0;
+  double water_table_depth = 0.0;
+  double *soil_moisture_profile = nullptr;
 
-    double soil_moisture_fraction;
-    double soil_moisture_fraction_depth;
-    
-    int    soil_storage_model;
-    double soil_storage_model_depth;
-    int    soil_moisture_profile_option;
+  double *smcmax = nullptr;
+  double b = 0.0;
+  double satpsi = 0.0;
+  int    ncells = 0;
+  double soil_depth = 0.0;
+  double soil_depth_NWM = 0.0;
+  double last_layer_depth = 0.0;
+  double *soil_z = nullptr;
 
-    bool   init_profile;
-    std::string verbosity;
-    
-    // layered model
-    std::vector<double> soil_moisture_wetting_fronts{};
-    std::vector<double> soil_depth_wetting_fronts{};
-    double *soil_depth_layers;
-    int     num_wetting_fronts;
-    int     max_num_wetting_fronts;
-    int     num_layers;
-    bool    soil_depth_layers_bmi;
-    bool    smcmax_bmi;
+  double soil_moisture_fraction = 0.0;
+  double soil_moisture_fraction_depth = 0.0;
 
-    //topmodel bmi outputs
-    double Qb_topmodel;
-    double Qv_topmodel;
-    double global_deficit;
-    double field_capacity;
-    int    water_table_based_method;
-    double cat_area;
-    
-  };
+  int    soil_storage_model = 0;
+  double soil_storage_model_depth = 0.0;
+  int    soil_moisture_profile_option = 0;
 
+  bool   init_profile = false;
+  std::string verbosity = "none";
+
+  // layered model
+  std::vector<double> soil_moisture_wetting_fronts{};
+  std::vector<double> soil_depth_wetting_fronts{};
+  double *soil_depth_layers = nullptr;
+  int     num_wetting_fronts = 0;
+  int     max_num_wetting_fronts = 0;
+  int     num_layers = 0;
+  bool    soil_depth_layers_bmi = false;
+  bool    smcmax_bmi = false;
+
+  // topmodel bmi outputs
+  double Qb_topmodel = 0.0;
+  double Qv_topmodel = 0.0;
+  double global_deficit = 0.0;
+  double field_capacity = 0.0;
+  int    water_table_based_method = 0;
+  double cat_area = 0.0;
+};
 
   void SoilMoistureProfile(std::string config_file, struct soil_profile_parameters* parameters);
 
