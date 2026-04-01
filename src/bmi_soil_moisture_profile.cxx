@@ -405,16 +405,53 @@ GetValue (std::string name, void *dest)
 void *BmiSoilMoistureProfile::
 GetValuePtr (std::string name)
 {
+  if (this->state == nullptr) {
+    LOG(LogLevel::FATAL, "GetValuePtr called before Initialize for variable %s", name.c_str());
+    throw std::runtime_error("Null state in GetValuePtr");
+  }
+
   if (name.compare("soil_storage") == 0)
     return (void*)(&this->state->soil_storage);
   else if (name.compare("soil_storage_change") == 0)
     return (void*)(&this->state->soil_storage_change_per_timestep);
-  else  if (name.compare("soil_water_table") == 0)
+  else if (name.compare("soil_water_table") == 0)
     return (void*)(&this->state->water_table_depth);
-  else  if (name.compare("soil_moisture_fraction") == 0)
+  else if (name.compare("soil_moisture_fraction") == 0)
     return (void*)(&this->state->soil_moisture_fraction);
-  else if (name.compare("soil_moisture_profile") == 0)
+  else if (name.compare("soil_moisture_profile") == 0) {
+    int nz = this->state->shape[0];
+
+    if (nz <= 0) {
+      LOG(LogLevel::FATAL, "Invalid shape[0]=%d for soil_moisture_profile", nz);
+      throw std::runtime_error("Invalid soil_moisture_profile size");
+    }
+
+    if (this->state->soil_moisture_profile == nullptr) {
+      LOG(LogLevel::FATAL, "soil_moisture_profile pointer is null");
+      throw std::runtime_error("Null soil_moisture_profile");
+    }
+
+    for (int i = 0; i < nz; ++i) {
+      double v = this->state->soil_moisture_profile[i];
+
+      if (!std::isfinite(v) || v <= 0.0) {
+        LOG(LogLevel::FATAL,
+            "Invalid soil_moisture_profile[%d]=%e before BMI export", i, v);
+        throw std::runtime_error("Invalid soil_moisture_profile passed to model");
+      }
+
+      if (this->state->smcmax != nullptr && this->state->num_layers > 0) {
+        if (v > this->state->smcmax[0]) {
+          LOG(LogLevel::FATAL,
+              "soil_moisture_profile[%d]=%e exceeds smcmax[0]=%e before BMI export",
+              i, v, this->state->smcmax[0]);
+          throw std::runtime_error("soil_moisture_profile exceeds smcmax before BMI export");
+        }
+      }
+    }
+
     return (void*)this->state->soil_moisture_profile;
+  }
   else if (name.compare("soil_moisture_wetting_fronts") == 0)
     return this->state->soil_moisture_wetting_fronts.data();
   else if (name.compare("soil_depth_wetting_fronts") == 0)
@@ -429,22 +466,26 @@ GetValuePtr (std::string name)
     return (void*)(&this->state->Qv_topmodel);
   else if (name.compare("global_deficit") == 0)
     return (void*)(&this->state->global_deficit);
-  else if (name.compare("smcmax") == 0)
+  else if (name.compare("smcmax") == 0) {
+    if (this->state->smcmax == nullptr) {
+      LOG(LogLevel::FATAL, "smcmax pointer is null");
+      throw std::runtime_error("Null smcmax");
+    }
     return (void*)this->state->smcmax;
+  }
   else if (name.compare("b") == 0)
     return (void*)(&this->state->b);
   else if (name.compare("satpsi") == 0)
     return (void*)(&this->state->satpsi);
   else if (name.compare("serialization_state") == 0)
     return (void*)(this->m_serialized.data());
-  else if (name.compare("serialization_size") == 0) {
+  else if (name.compare("serialization_size") == 0)
     return (void*)(&this->m_serialized_length);
-  } else {
+  else {
     std::stringstream errMsg;
-    errMsg << "variable "<< name << " does not exist";
+    errMsg << "variable " << name << " does not exist";
     LOG(LogLevel::FATAL, errMsg.str());
     throw std::runtime_error(errMsg.str());
-    return NULL;
   }
 }
 
