@@ -435,7 +435,7 @@ GetValuePtr (std::string name)
     for (int i = 0; i < nz; ++i) {
       double v = this->state->soil_moisture_profile[i];
 
-      if (!std::isfinite(v) || v < 0.0) {
+      if (!std::isfinite(v)) {
         LOG(LogLevel::FATAL,
             "Invalid soil_moisture_profile[%d]=%e before BMI export", i, v);
         throw std::runtime_error("Invalid soil_moisture_profile passed to model");

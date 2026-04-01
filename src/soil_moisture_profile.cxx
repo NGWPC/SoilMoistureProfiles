@@ -817,7 +817,7 @@ void soil_moisture_profile::SoilMoistureProfileFromLayeredReservoir(
             throw std::runtime_error("Non-finite soil_moisture_profile");
         }
 
-        if (!(parameters->soil_moisture_profile[i] > 0.0)) {
+        if (!(parameters->soil_moisture_profile[i] >= 0.0)) {
             LOG(LogLevel::FATAL,
                 "soil_moisture_profile[%d]=%f must be positive",
                 i, parameters->soil_moisture_profile[i]);
