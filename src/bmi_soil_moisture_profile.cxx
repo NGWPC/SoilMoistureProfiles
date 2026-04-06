@@ -440,15 +440,6 @@ GetValuePtr (std::string name)
             "Invalid soil_moisture_profile[%d]=%e before BMI export", i, v);
         throw std::runtime_error("Invalid soil_moisture_profile passed to model");
       }
-
-      if (this->state->smcmax != nullptr && this->state->num_layers > 0) {
-        if (v > this->state->smcmax[0]) {
-          LOG(LogLevel::FATAL,
-              "soil_moisture_profile[%d]=%e exceeds smcmax[0]=%e before BMI export",
-              i, v, this->state->smcmax[0]);
-          throw std::runtime_error("soil_moisture_profile exceeds smcmax before BMI export");
-        }
-      }
     }
 
     return (void*)this->state->soil_moisture_profile;
