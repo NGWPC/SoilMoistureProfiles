@@ -687,6 +687,11 @@ void soil_moisture_profile::SoilMoistureProfileFromLayeredReservoir(
         throw std::runtime_error("Null soil_z in SoilMoistureProfileFromLayeredReservoir");
     }
 
+    if (parameters->smcmax == nullptr) {
+        LOG(LogLevel::FATAL, "smcmax is null in SoilMoistureProfileFromLayeredReservoir");
+        throw std::runtime_error("Null smcmax in SoilMoistureProfileFromLayeredReservoir");
+    }
+
     for (int i = 0; i < num_wf; i++) {
         if (!std::isfinite(parameters->soil_depth_wetting_fronts[i]) ||
             !std::isfinite(parameters->soil_moisture_wetting_fronts[i])) {
@@ -816,6 +821,29 @@ void soil_moisture_profile::SoilMoistureProfileFromLayeredReservoir(
 
                 parameters->soil_moisture_profile[i] = theta;
             }
+        }
+    }
+
+    for (int i = 0; i < parameters->ncells; i++) {
+        if (!std::isfinite(parameters->soil_moisture_profile[i])) {
+            LOG(LogLevel::FATAL,
+                "soil_moisture_profile[%d]=%f is not finite in Layered path",
+                i, parameters->soil_moisture_profile[i]);
+            throw std::runtime_error("Non-finite soil_moisture_profile in Layered path");
+        }
+
+        if (!(parameters->soil_moisture_profile[i] > 0.0)) {
+            LOG(LogLevel::FATAL,
+                "soil_moisture_profile[%d]=%f must be > 0.0 in Layered path",
+                i, parameters->soil_moisture_profile[i]);
+            throw std::runtime_error("Non-positive soil_moisture_profile in Layered path");
+        }
+
+        if (parameters->soil_moisture_profile[i] > parameters->smcmax[num_layers - 1]) {
+            LOG(LogLevel::FATAL,
+                "soil_moisture_profile[%d]=%f exceeds smcmax[num_layers - 1]=%f in Layered path",
+                i, parameters->soil_moisture_profile[i], parameters->smcmax[num_layers - 1]);
+            throw std::runtime_error("soil_moisture_profile exceeds smcmax in Layered path");
         }
     }
 
