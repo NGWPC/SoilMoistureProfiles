@@ -591,6 +591,10 @@ void soil_moisture_profile::SoilMoistureProfileFromConceptualReservoir(
             double z_temp = parameters->water_table_depth - parameters->soil_z[i];
             double theta;
 
+	    // If Z_temp is too small, ( parameters->satpsi / z_temp) will be huge, so it should be limited.
+	    if (z_temp <= 1e-6) {
+                z_temp = 1e-6;  // prevent blow-up
+            }
             if (parameters->water_table_depth <= parameters->soil_z[i])
                 theta = parameters->smcmax[0];
             else
@@ -832,9 +836,9 @@ void soil_moisture_profile::SoilMoistureProfileFromLayeredReservoir(
             throw std::runtime_error("Non-finite soil_moisture_profile in Layered path");
         }
 
-        if (!(parameters->soil_moisture_profile[i] > 0.0)) {
+        if (!(parameters->soil_moisture_profile[i] >= 0.0)) {
             LOG(LogLevel::FATAL,
-                "soil_moisture_profile[%d]=%f must be > 0.0 in Layered path",
+                "soil_moisture_profile[%d]=%f must be >= 0.0 in Layered path",
                 i, parameters->soil_moisture_profile[i]);
             throw std::runtime_error("Non-positive soil_moisture_profile in Layered path");
         }

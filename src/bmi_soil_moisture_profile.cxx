@@ -590,6 +590,17 @@ SetValue (std::string name, void *src)
 
     this->state->num_wetting_fronts = new_num_wetting_fronts;
     this->state->shape[1] = new_num_wetting_fronts;
+
+    if ((int)this->state->soil_moisture_wetting_fronts.size() != new_num_wetting_fronts)
+      this->state->soil_moisture_wetting_fronts.resize(new_num_wetting_fronts);
+
+    if ((int)this->state->soil_depth_wetting_fronts.size() != new_num_wetting_fronts)
+      this->state->soil_depth_wetting_fronts.resize(new_num_wetting_fronts);
+
+    LOG(LogLevel::INFO,
+        "SMP SetValue num_wetting_fronts=%d src_ptr=%p",
+        this->state->num_wetting_fronts, src);
+
     return;
   }
 
@@ -607,7 +618,240 @@ SetValue (std::string name, void *src)
     throw std::runtime_error("Invalid nbytes in SetValue");
   }
 
-  memcpy(dest, src, nbytes);
+  if (name.compare("soil_storage") == 0) {
+    memcpy(dest, src, nbytes);
+
+    double v = this->state->soil_storage;
+    if (!std::isfinite(v)) {
+      LOG(LogLevel::FATAL, "soil_storage=%e is not finite in SetValue", v);
+      throw std::runtime_error("Non-finite soil_storage in SetValue");
+    }
+  }
+  else if (name.compare("soil_storage_change_per_timestep") == 0 ||
+           name.compare("soil_storage_change") == 0) {
+    memcpy(dest, src, nbytes);
+
+    double v = this->state->soil_storage_change_per_timestep;
+    if (!std::isfinite(v)) {
+      LOG(LogLevel::FATAL, "soil_storage_change_per_timestep=%e is not finite in SetValue", v);
+      throw std::runtime_error("Non-finite soil_storage_change_per_timestep in SetValue");
+    }
+  }
+  else if (name.compare("Qb_topmodel") == 0) {
+    memcpy(dest, src, nbytes);
+
+    double v = this->state->Qb_topmodel;
+    if (!std::isfinite(v)) {
+      LOG(LogLevel::FATAL, "Qb_topmodel=%e is not finite in SetValue", v);
+      throw std::runtime_error("Non-finite Qb_topmodel in SetValue");
+    }
+  }
+  else if (name.compare("Qv_topmodel") == 0) {
+    memcpy(dest, src, nbytes);
+
+    double v = this->state->Qv_topmodel;
+    if (!std::isfinite(v)) {
+      LOG(LogLevel::FATAL, "Qv_topmodel=%e is not finite in SetValue", v);
+      throw std::runtime_error("Non-finite Qv_topmodel in SetValue");
+    }
+  }
+  else if (name.compare("global_deficit") == 0) {
+    memcpy(dest, src, nbytes);
+
+    double v = this->state->global_deficit;
+    if (!std::isfinite(v)) {
+      LOG(LogLevel::FATAL, "global_deficit=%e is not finite in SetValue", v);
+      throw std::runtime_error("Non-finite global_deficit in SetValue");
+    }
+  }
+  else if (name.compare("soil_moisture_wetting_fronts") == 0) {
+    int num_wf = this->state->num_wetting_fronts;
+
+    if (num_wf <= 0) {
+      LOG(LogLevel::FATAL,
+          "soil_moisture_wetting_fronts received but num_wetting_fronts=%d",
+          num_wf);
+      throw std::runtime_error("Invalid num_wetting_fronts before soil_moisture_wetting_fronts copy");
+    }
+
+    if ((int)this->state->soil_moisture_wetting_fronts.size() < num_wf) {
+      LOG(LogLevel::FATAL,
+          "soil_moisture_wetting_fronts size=%zu smaller than num_wetting_fronts=%d after resize",
+          this->state->soil_moisture_wetting_fronts.size(),
+          num_wf);
+      throw std::runtime_error("soil_moisture_wetting_fronts size mismatch in SetValue");
+    }
+
+    LOG(LogLevel::INFO,
+        "SMP SetValue BEFORE memcpy: %s num_wf=%d nbytes=%d src_ptr=%p dest_ptr=%p",
+        name.c_str(), num_wf, nbytes, src, dest);
+
+    double* src_d = static_cast<double*>(src);
+    for (int i = 0; i < num_wf; i++) {
+      LOG(LogLevel::INFO,
+          "SMP SetValue SRC soil_moisture_wetting_fronts[%d]=%e addr=%p",
+          i, src_d[i], &src_d[i]);
+    }
+
+    memcpy(dest, src, nbytes);
+
+    for (int i = 0; i < num_wf; i++) {
+      LOG(LogLevel::INFO,
+          "SMP SetValue DEST soil_moisture_wetting_fronts[%d]=%e addr=%p",
+          i, this->state->soil_moisture_wetting_fronts[i], &this->state->soil_moisture_wetting_fronts[i]);
+    }
+
+    double max_smc = -std::numeric_limits<double>::infinity();
+    bool have_smcmax = false;
+
+    if (this->state->smcmax != nullptr && this->state->num_layers > 0) {
+      for (int j = 0; j < this->state->num_layers; j++) {
+        if (!std::isfinite(this->state->smcmax[j]) || this->state->smcmax[j] <= 0.0) {
+          LOG(LogLevel::FATAL,
+              "Invalid smcmax[%d]=%e while validating soil_moisture_wetting_fronts",
+              j, this->state->smcmax[j]);
+          throw std::runtime_error("Invalid smcmax in SetValue");
+        }
+        if (!have_smcmax || this->state->smcmax[j] > max_smc) {
+          max_smc = this->state->smcmax[j];
+          have_smcmax = true;
+        }
+      }
+    }
+
+    for (int i = 0; i < num_wf; i++) {
+      double v = this->state->soil_moisture_wetting_fronts[i];
+
+      if (!std::isfinite(v)) {
+        LOG(LogLevel::FATAL,
+            "soil_moisture_wetting_fronts[%d]=%e is not finite in SetValue",
+            i, v);
+        throw std::runtime_error("Non-finite soil_moisture_wetting_fronts in SetValue");
+      }
+
+      if (v < 0.0) {
+        LOG(LogLevel::FATAL,
+            "soil_moisture_wetting_fronts[%d]=%e must be >= 0 in SetValue",
+            i, v);
+        throw std::runtime_error("Negative soil_moisture_wetting_fronts in SetValue");
+      }
+
+      if (have_smcmax && v > max_smc) {
+        LOG(LogLevel::FATAL,
+            "soil_moisture_wetting_fronts[%d]=%e exceeds max_smc=%e in SetValue",
+            i, v, max_smc);
+        throw std::runtime_error("soil_moisture_wetting_fronts exceeds smcmax in SetValue");
+      }
+    }
+  }
+  else if (name.compare("soil_depth_wetting_fronts") == 0) {
+    int num_wf = this->state->num_wetting_fronts;
+
+    if (num_wf <= 0) {
+      LOG(LogLevel::FATAL,
+          "soil_depth_wetting_fronts received but num_wetting_fronts=%d",
+          num_wf);
+      throw std::runtime_error("Invalid num_wetting_fronts before soil_depth_wetting_fronts copy");
+    }
+
+    if ((int)this->state->soil_depth_wetting_fronts.size() < num_wf) {
+      LOG(LogLevel::FATAL,
+          "soil_depth_wetting_fronts size=%zu smaller than num_wetting_fronts=%d after resize",
+          this->state->soil_depth_wetting_fronts.size(),
+          num_wf);
+      throw std::runtime_error("soil_depth_wetting_fronts size mismatch in SetValue");
+    }
+
+    LOG(LogLevel::INFO,
+        "SMP SetValue BEFORE memcpy: %s num_wf=%d nbytes=%d src_ptr=%p dest_ptr=%p",
+        name.c_str(), num_wf, nbytes, src, dest);
+
+    double* src_d = static_cast<double*>(src);
+    for (int i = 0; i < num_wf; i++) {
+      LOG(LogLevel::INFO,
+          "SMP SetValue SRC soil_depth_wetting_fronts[%d]=%e addr=%p",
+          i, src_d[i], &src_d[i]);
+    }
+
+    memcpy(dest, src, nbytes);
+
+    for (int i = 0; i < num_wf; i++) {
+      LOG(LogLevel::INFO,
+          "SMP SetValue DEST soil_depth_wetting_fronts[%d]=%e addr=%p",
+          i, this->state->soil_depth_wetting_fronts[i], &this->state->soil_depth_wetting_fronts[i]);
+    }
+
+    for (int i = 0; i < num_wf; i++) {
+      double z = this->state->soil_depth_wetting_fronts[i];
+
+      if (!std::isfinite(z)) {
+        LOG(LogLevel::FATAL,
+            "soil_depth_wetting_fronts[%d]=%e is not finite in SetValue",
+            i, z);
+        throw std::runtime_error("Non-finite soil_depth_wetting_fronts in SetValue");
+      }
+
+      if (z < 0.0) {
+        LOG(LogLevel::FATAL,
+            "soil_depth_wetting_fronts[%d]=%e must be >= 0 in SetValue",
+            i, z);
+        throw std::runtime_error("Negative soil_depth_wetting_fronts in SetValue");
+      }
+
+      if (this->state->soil_depth > 0.0 && z > this->state->soil_depth) {
+        LOG(LogLevel::FATAL,
+            "soil_depth_wetting_fronts[%d]=%e exceeds soil_depth=%e in SetValue",
+            i, z, this->state->soil_depth);
+        throw std::runtime_error("soil_depth_wetting_fronts exceeds soil_depth in SetValue");
+      }
+
+      if (i > 0 && z < this->state->soil_depth_wetting_fronts[i - 1]) {
+        LOG(LogLevel::FATAL,
+            "soil_depth_wetting_fronts not monotonic at i=%d: prev=%e curr=%e in SetValue",
+            i,
+            this->state->soil_depth_wetting_fronts[i - 1],
+            z);
+        throw std::runtime_error("Non-monotonic soil_depth_wetting_fronts in SetValue");
+      }
+    }
+  }
+  else if (name.compare("smcmax") == 0) {
+    memcpy(dest, src, nbytes);
+
+    if (this->state->smcmax == nullptr || this->state->num_layers <= 0) {
+      LOG(LogLevel::FATAL, "Invalid smcmax metadata in SetValue");
+      throw std::runtime_error("Invalid smcmax metadata in SetValue");
+    }
+
+    for (int i = 0; i < this->state->num_layers; i++) {
+      double v = this->state->smcmax[i];
+      if (!std::isfinite(v) || v <= 0.0) {
+        LOG(LogLevel::FATAL,
+            "smcmax[%d]=%e is invalid in SetValue",
+            i, v);
+        throw std::runtime_error("Invalid smcmax in SetValue");
+      }
+    }
+  }
+  else if (name.compare("b") == 0) {
+    memcpy(dest, src, nbytes);
+
+    if (!std::isfinite(this->state->b) || this->state->b <= 0.0) {
+      LOG(LogLevel::FATAL, "b=%e is invalid in SetValue", this->state->b);
+      throw std::runtime_error("Invalid b in SetValue");
+    }
+  }
+  else if (name.compare("satpsi") == 0) {
+    memcpy(dest, src, nbytes);
+
+    if (!std::isfinite(this->state->satpsi) || this->state->satpsi <= 0.0) {
+      LOG(LogLevel::FATAL, "satpsi=%e is invalid in SetValue", this->state->satpsi);
+      throw std::runtime_error("Invalid satpsi in SetValue");
+    }
+  }
+  else {
+    memcpy(dest, src, nbytes);
+  }
 }
 
 void BmiSoilMoistureProfile::
