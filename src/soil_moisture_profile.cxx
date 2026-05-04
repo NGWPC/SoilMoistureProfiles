@@ -458,17 +458,32 @@ void soil_moisture_profile::SoilMoistureProfileFromConceptualReservoir(
 
     double soil_storage_max = model_depth * parameters->smcmax[0];
 
+
     double soil_storage_change_per_timestep_cm =
         fabs(parameters->soil_storage_change_per_timestep * 100.0);
-    double soil_storage_current_timestep_cm =
-        100.0 * parameters->soil_storage; // storage at the current timestep
 
     if (!(parameters->soil_storage > 0.0)) {
+        static int warned = 0;
+
         // to ensure that soil storage is non-zero due to unexpected
         //  bugs (either in the models or calibration tools)
-        LOG(LogLevel::WARNING,"Invalid parameter. soil_storage = %f. Must be >= 0.0. Initializing the soil storage to 0.0001.", parameters->soil_storage);
+        if (warned == 0) {
+            LOG(LogLevel::WARNING,
+                "Invalid parameter. soil_storage = %f. Must be >= 0.0. Initializing the soil storage to 0.0001.",
+                parameters->soil_storage);
+            warned = 1;
+        }
+        else if (warned == 1) {
+            LOG(LogLevel::WARNING,
+                "Invalid soil_storage occurred again; further warnings suppressed");
+            warned = 2;
+        }
+
         parameters->soil_storage = 0.0001;
     }
+
+    double soil_storage_current_timestep_cm =
+        100.0 * parameters->soil_storage; // storage at the current timestep
 
     int count = 0;
 
