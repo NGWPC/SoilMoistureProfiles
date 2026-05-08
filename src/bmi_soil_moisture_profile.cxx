@@ -20,6 +20,13 @@
 void BmiSoilMoistureProfile::
 Initialize (std::string config_file)
 {
+    // Initialize the Error, Warning and Trapping System
+#ifdef EWTS_HAVE_NGEN_BRIDGE    
+  EwtsInit(EWTS_ID_SMP, true);
+#else
+  EwtsInit(EWTS_ID_SMP, false);
+#endif  
+
   LOG(LogLevel::INFO, "Initializing SMP");
   if (config_file.compare("") != 0 ) {
     this->state = new soil_moisture_profile::soil_profile_parameters;
@@ -82,6 +89,7 @@ GetVarGrid(std::string name)
     || name.compare("global_deficit") == 0
     || name.compare("b") == 0
     || name.compare("satpsi") == 0
+    || name.compare("reset_time") == 0
   ) // double
     return 1;
   else if (
@@ -463,6 +471,9 @@ SetValue (std::string name, void *src)
   } else if (name.compare("serialization_free") == 0) {
     this->free_serialized();
     return;
+  } else if (name == "reset_time") {
+    // This BMI does not increment its time, so no action needs to be done.
+    return;
   }
   void * dest = NULL;
   ResetSize(name);
@@ -605,11 +616,15 @@ serialize(Archive& ar, const unsigned int version) {
 
 void BmiSoilMoistureProfile::
 new_serialized() {
-  this->m_serialized.clear();
+  // resize with space for size as a header
+  this->m_serialized.resize(sizeof(uint64_t));
   boost::archive::binary_oarchive archive(this->m_serialized);
   try {
     archive << (*this);
     this->m_serialized_length = this->m_serialized.size();
+    // store size of serialized data as header
+    uint64_t serialized_size = this->m_serialized_length - sizeof(uint64_t);
+    memcpy(this->m_serialized.data(), &serialized_size, sizeof(uint64_t));
   } catch (const std::exception &e) {
     LOG(LogLevel::WARNING, "Serializing SMP encounterd an error: %s", e.what());
     LOG(LogLevel::WARNING, "Set m_serialized_length = 0");
@@ -620,8 +635,12 @@ new_serialized() {
 
 
 void BmiSoilMoistureProfile::
-load_serialized(const char* data) {
-  std::stringstream stream(data);
+load_serialized(char* data) {
+  // get size from header of data
+  uint64_t size;
+  memcpy(&size, data, sizeof(uint64_t));
+  // create stream from after header
+  membuf stream(data + sizeof(uint64_t), size);
   boost::archive::binary_iarchive archive(stream);
   try {
     archive >> (*this);

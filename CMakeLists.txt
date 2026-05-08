@@ -69,9 +69,9 @@ endif()
 
 ## for NGEN BUILD
 if(WIN32)
-    add_library(smpbmi src/bmi_soil_moisture_profile.cxx src/soil_moisture_profile.cxx src/Logger.cxx)
+    add_library(smpbmi src/bmi_soil_moisture_profile.cxx src/soil_moisture_profile.cxx)
 else()
-    add_library(smpbmi SHARED src/bmi_soil_moisture_profile.cxx src/soil_moisture_profile.cxx src/Logger.cxx)
+    add_library(smpbmi SHARED src/bmi_soil_moisture_profile.cxx src/soil_moisture_profile.cxx)
 endif()
 
 target_include_directories(smpbmi PRIVATE include)
@@ -84,6 +84,17 @@ target_link_libraries(smpbmi PRIVATE Boost::serialization)
 
 # Code requires minimum of C99 standard to compile
 set_target_properties(smpbmi PROPERTIES C_STANDARD 99 C_STANDARD_REQUIRED ON)
+
+# --- EWTS (installed from nwm-ewts) ---
+find_package(ewts CONFIG REQUIRED)
+
+# Always use EWTS runtime logger for CPP
+target_link_libraries(smpbmi PRIVATE ewts::ewts_cpp)
+
+# Built with ngen bridge
+target_link_libraries(smpbmi PRIVATE 
+    "-Wl,--no-as-needed" ewts::ewts_ngen_bridge "-Wl,--as-needed")
+target_compile_definitions(smpbmi PRIVATE EWTS_HAVE_NGEN_BRIDGE)
 
 include(GNUInstallDirs)
 
