@@ -22,9 +22,9 @@ Initialize (std::string config_file)
 {
     // Initialize the Error, Warning and Trapping System
 #ifdef EWTS_HAVE_NGEN_BRIDGE    
-  EwtsInit(EWTS_ID_SMP, true);
+  EwtsInit(SMP_MODULE_ID, true);
 #else
-  EwtsInit(EWTS_ID_SMP, false);
+  EwtsInit(SMP_MODULE_ID, false);
 #endif  
 
   LOG(LogLevel::INFO, "Initializing SMP");
