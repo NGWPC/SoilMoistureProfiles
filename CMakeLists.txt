@@ -94,7 +94,7 @@ target_link_libraries(smpbmi PRIVATE ewts::ewts_cpp)
 # Built with ngen bridge
 target_link_libraries(smpbmi PRIVATE 
     "-Wl,--no-as-needed" ewts::ewts_ngen_bridge "-Wl,--as-needed")
-target_compile_definitions(smpbmi PRIVATE EWTS_HAVE_NGEN_BRIDGE)
+target_compile_definitions(smpbmi PRIVATE USE_EWTS)
 
 include(GNUInstallDirs)
 
