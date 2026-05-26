@@ -20,11 +20,12 @@
 void BmiSoilMoistureProfile::
 Initialize (std::string config_file)
 {
-    // Initialize the Error, Warning and Trapping System
-#ifdef USE_EWTS    
+#ifdef SMP_USE_EWTS    
+  // Initialize the Error and Warning Trapping System
+  #pragma message("SoilMoistureProfiles.bmi_soil_moisture_profile.Initialize: SMP_USE_EWTS ON")
   EwtsInit(SMP_MODULE_ID, true);
 #else
-  EwtsInit(SMP_MODULE_ID, false);
+  #pragma message("SoilMoistureProfiles.bmi_soil_moisture_profile.Initialize: SMP_USE_EWTS OFF")
 #endif  
 
   LOG(LogLevel::INFO, "Initializing SMP");
