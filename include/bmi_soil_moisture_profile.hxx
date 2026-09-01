@@ -110,7 +110,7 @@ private:
 
   template<class Archive>
   void serialize(Archive& ar, const unsigned int version);
-  vecbuf<char> m_serialized;
+  vecbuf m_serialized;
   uint64_t m_serialized_length;
   void new_serialized();
   void load_serialized(char* data);
