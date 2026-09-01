@@ -614,18 +614,26 @@ serialize(Archive& ar, const unsigned int version) {
   ar & state->soil_moisture_fraction;
 }
 
+namespace {
+  using HeaderType = uint64_t;
+}
 
 void BmiSoilMoistureProfile::
 new_serialized() {
   // resize with space for size as a header
-  this->m_serialized.resize(sizeof(uint64_t));
-  boost::archive::binary_oarchive archive(this->m_serialized);
+  this->m_serialized.clear();
+  OStreamType stream(this->m_serialized);
+  // add space for sizze header
+  HeaderType serialized_size;
+  stream.write(reinterpret_cast<const char*>(&serialized_size), sizeof(HeaderType));
+  boost::archive::binary_oarchive archive(stream);
   try {
     archive << (*this);
+    stream.flush();
     this->m_serialized_length = this->m_serialized.size();
     // store size of serialized data as header
-    uint64_t serialized_size = this->m_serialized_length - sizeof(uint64_t);
-    memcpy(this->m_serialized.data(), &serialized_size, sizeof(uint64_t));
+    serialized_size = this->m_serialized_length - sizeof(HeaderType);
+    memcpy(this->m_serialized.data(), &serialized_size, sizeof(HeaderType));
   } catch (const std::exception &e) {
     LOG(LogLevel::WARNING, "Serializing SMP encounterd an error: %s", e.what());
     LOG(LogLevel::WARNING, "Set m_serialized_length = 0");
@@ -638,10 +646,10 @@ new_serialized() {
 void BmiSoilMoistureProfile::
 load_serialized(char* data) {
   // get size from header of data
-  uint64_t size;
-  memcpy(&size, data, sizeof(uint64_t));
+  HeaderType size;
+  memcpy(&size, data, sizeof(HeaderType));
   // create stream from after header
-  membuf stream(data + sizeof(uint64_t), size);
+  membuf stream(data + sizeof(HeaderType), size);
   boost::archive::binary_iarchive archive(stream);
   try {
     archive >> (*this);
