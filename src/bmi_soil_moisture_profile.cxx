@@ -626,7 +626,7 @@ new_serialized() {
   // add space for sizze header
   HeaderType serialized_size;
   stream.write(reinterpret_cast<const char*>(&serialized_size), sizeof(HeaderType));
-  boost::archive::binary_oarchive archive(this->m_serialized);
+  boost::archive::binary_oarchive archive(stream);
   try {
     archive << (*this);
     stream.flush();
